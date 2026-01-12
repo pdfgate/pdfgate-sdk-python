@@ -25,7 +25,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+  "requests"
+]
 
 [project.urls]
 Documentation = "https://github.com/pdfgate/pdfgate-sdk-python#readme"
@@ -34,3 +36,13 @@ Source = "https://github.com/pdfgate/pdfgate-sdk-python"
 
 [tool.hatch.version]
 path = "src/pdfgate_sdk_python/__about__.py"
+
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest",
+  "pytest-cov",
+  "responses"
+]
+
+[tool.hatch.envs.test.scripts]
+test = "pytest"
