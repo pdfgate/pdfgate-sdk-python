@@ -30,6 +30,24 @@ def get_domain_from_api_key(api_key: str) -> str:
     else:
         raise PDFGateError("Invalid API key format. Expected to start with 'live_' or 'test_'.")
 
+class URLBuilder:
+    """Helper class to build URLs for the PDFGate API."""
+
+    @staticmethod
+    def get_document_url(domain: str, document_id: str) -> str:
+        """Build the URL for accessing a document.
+
+        Args:
+            domain:
+                Base API domain.
+            document_id:
+                ID of the document.
+
+        Returns:
+            Full URL to access the document.
+        """
+        return f"{domain}/document/{document_id}"
+
 class PDFGate:
     """Client for the PDFGate API.
 
@@ -87,7 +105,7 @@ class PDFGate:
             params_dict["preSignedUrlExpiresIn"] = params.pre_signed_url_expires_in
         
         try:
-            url = f"{self.domain}/document/{params.document_id}"
+            url = URLBuilder.get_document_url(self.domain, params.document_id)
             response = requests.get(url=url, headers=headers, params=params_dict)
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -109,10 +127,4 @@ class PDFGate:
             # Timeout, ConnectionError, etc.
             raise PDFGateError(f"Request failed: {e}") from e
 
-        json_response = response.json()
-        try: 
-            result = PDFGateDocument.from_json(json_response)
-        except ValueError as e:
-            raise PDFGateError(f"Failed to parse response JSON: {e}") from e
-
-        return result
+        return response.json()
