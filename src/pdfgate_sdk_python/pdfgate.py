@@ -3,11 +3,12 @@
 Client for interacting with the PDFGate API.
 """
 
+from typing import cast
 import requests
 
 from .errors import PDFGateError
 from .params import GetDocumentParams
-from .responses import PDFGateDocument
+from .responses import PDFGateDocument, convert_keys_to_snake_case
 from .constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 
 def get_domain_from_api_key(api_key: str) -> str:
@@ -127,4 +128,6 @@ class PDFGate:
             # Timeout, ConnectionError, etc.
             raise PDFGateError(f"Request failed: {e}") from e
 
-        return response.json()
+        json_response = response.json()
+
+        return cast(PDFGateDocument, convert_keys_to_snake_case(json_response))
