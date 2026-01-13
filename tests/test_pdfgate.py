@@ -19,12 +19,12 @@ class TestURLBuilder:
     def random_file_url() -> str:
         return f"{PRODUCTION_API_DOMAIN}/file/open/{str(uuid.uuid4())}"
 
-def test_invalid_api_key_raises():
+def test_invalid_api_key_raises() -> None:
     with pytest.raises(PDFGateError, match="Invalid API key format"):
         PDFGate("wrong_prefix_213123")
 
 @responses.activate
-def test_get_document_raises_when_request_returns_an_http_error():
+def test_get_document_raises_when_request_returns_an_http_error() -> None:
     responses.add(
         responses.GET,
         URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, DOCUMENT_ID),
@@ -52,7 +52,7 @@ def test_get_document_raises_when_request_returns_an_http_error():
     (exceptions.ConnectionError("Connection failed"), r"Request failed.*Connection failed"),
 ])
 @responses.activate
-def test_get_document_raises_when_request_fails(body: Exception, match_pattern: str):
+def test_get_document_raises_when_request_fails(body: Exception, match_pattern: str) -> None:
     responses.add(
         responses.GET,
         URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, DOCUMENT_ID),
@@ -64,7 +64,7 @@ def test_get_document_raises_when_request_fails(body: Exception, match_pattern: 
         client.get_document(params)
 
 @responses.activate
-def test_get_document_returns_document():
+def test_get_document_returns_document() -> None:
     mock_response: dict[str, Union[str, int]] = {
         "id": DOCUMENT_ID,
         "status": "completed",

@@ -42,10 +42,12 @@ dependencies = [
   "pytest",
   "responses",
   "mypy>=1.0.0",
+  "ruff",
 ]
 
 [tool.hatch.envs.dev.scripts]
 check = "mypy --install-types --non-interactive {args:src/pdfgate_sdk_python tests}"
+lint = "ruff check ."
 
 [tool.hatch.envs.test]
 dependencies = [
