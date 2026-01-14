@@ -65,3 +65,13 @@ dependencies = [
 [tool.hatch.envs.test.scripts]
 test = "pytest --ignore=tests/test_pdfgate_acceptance.py"
 test_acceptance = "pytest tests/test_pdfgate_acceptance.py {args}"
+
+[tool.hatch.envs.docs]
+dependencies = [
+  "mkdocs",
+  "mkdocstrings[python]",
+  "mkdocs-material"
+]
+
+[tool.hatch.envs.docs.scripts]
+serve = "mkdocs serve"

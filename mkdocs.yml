@@ -1,0 +1,10 @@
+site_name: PDFGate Python SDK Documentation
+
+theme:
+  name: "material"
+
+plugins:
+  - mkdocstrings
+
+nav:
+  - reference.md

@@ -1,0 +1,1 @@
+::: pdfgate_sdk_python.pdfgate
