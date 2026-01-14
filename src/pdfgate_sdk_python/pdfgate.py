@@ -8,9 +8,11 @@ from datetime import timedelta
 from typing import Any, Union, cast
 import requests
 
+from pdfgate_sdk_python.dict_keys_converter import convert_camel_keys_to_snake, snake_to_camel
+
 from .errors import PDFGateError, ParamsValidationError
-from .params import GeneratePDFParams, GetDocumentParams, GetFileParams, snake_to_camel
-from .responses import PDFGateDocument, convert_keys_to_snake_case
+from .params import GeneratePDFParams, GetDocumentParams, GetFileParams
+from .responses import PDFGateDocument
 from .constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 
 def get_domain_from_api_key(api_key: str) -> str:
@@ -165,7 +167,7 @@ class PDFGate:
         response = try_make_request(request)
         json_response = response.json()
 
-        return cast(PDFGateDocument, convert_keys_to_snake_case(json_response))
+        return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
 
     def get_file(self, params: GetFileParams) -> bytes:
         """Download a raw PDF file by its document ID.
@@ -207,6 +209,6 @@ class PDFGate:
 
         if params.json_response:
             json_response = response.json()
-            return cast(PDFGateDocument, convert_keys_to_snake_case(json_response))
+            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
 
         return response.content

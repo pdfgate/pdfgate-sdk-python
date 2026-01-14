@@ -3,13 +3,6 @@ from enum import Enum
 from typing import Any, Optional
 
 
-def snake_to_camel(key: str) -> str:
-    """Convert a snake_case string to camelCase."""
-    parts = key.split('_')
-
-    return parts[0] + ''.join(word.capitalize() for word in parts[1:])
-
-
 class PageSizeType(Enum):
   A0 = "a0"
   A1 = "a1"
