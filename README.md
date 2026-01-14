@@ -20,6 +20,18 @@ Run tests:
 hatch run test:test 
 ```
 
+Run Ruff to run linting and formatting:
+
+```sh
+hatch run dev:lint
+```
+
+Run mypy for type checking:
+
+```sh
+hatch run dev:check
+```
+
 # Support
 
 📧 Email: support@pdfgate.com  
