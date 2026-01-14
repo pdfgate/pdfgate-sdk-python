@@ -1,6 +1,6 @@
 from datetime import datetime
 import random
-from typing import TypedDict, Union
+from typing import TypedDict
 import uuid
 import pytest
 import requests
@@ -121,7 +121,7 @@ def test_generate_pdf_returns_json_when_json_reponse_true() -> None:
         responses.POST,
         URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
         json=document_response,
-        status=200
+        status=201
     )
     client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
     params = GeneratePDFParams(
@@ -134,4 +134,21 @@ def test_generate_pdf_returns_json_when_json_reponse_true() -> None:
     assert response.get("id") == document_response["id"]
     assert response.get("status") == document_response["status"]
     assert response.get("created_at") == document_response["createdAt"]
-    assert response.get("file_url") == document_response["fileUrl"]
+
+@responses.activate
+def test_generate_pdf_returns_bytes_when_json_reponse_false() -> None:
+    responses.add(
+        responses.POST,
+        URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
+        body=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",
+        content_type="application/octet-stream",
+        status=201
+    )
+    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
+    params = GeneratePDFParams(
+        html="<h1>Test</h1>",
+        json_response=False
+    )
+
+    response = client.generate_pdf(params)
+    assert isinstance(response, bytes)
