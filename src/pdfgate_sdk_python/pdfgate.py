@@ -3,11 +3,13 @@
 Client for interacting with the PDFGate API.
 """
 
-from typing import cast
+from dataclasses import asdict
+from datetime import timedelta
+from typing import Any, Union, cast
 import requests
 
-from .errors import PDFGateError
-from .params import GetDocumentParams
+from .errors import PDFGateError, ParamsValidationError
+from .params import GeneratePDFParams, GetDocumentParams, GetFileParams, snake_to_camel
 from .responses import PDFGateDocument, convert_keys_to_snake_case
 from .constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 
@@ -48,6 +50,31 @@ class URLBuilder:
             Full URL to access the document.
         """
         return f"{domain}/document/{document_id}"
+
+    @staticmethod
+    def get_file_url(domain: str, document_id: str) -> str:
+        """Build the URL for downloading a document.
+
+        Args:
+            domain:
+                Base API domain.
+            document_id:
+                ID of the document.
+
+        Returns:
+            Full URL to download the document.
+        """
+        return f"{domain}/file/{document_id}"
+
+    @staticmethod
+    def generate_pdf_url(domain: str) -> str:
+        """Build the URL for generating a PDF.
+
+        Args:
+            domain:
+                Base API domain.
+        """
+        return f"{domain}/v1/generate/pdf"
 
 class PDFGate:
     """Client for the PDFGate API.
@@ -105,9 +132,32 @@ class PDFGate:
         if params.pre_signed_url_expires_in is not None:
             params_dict["preSignedUrlExpiresIn"] = params.pre_signed_url_expires_in
         
+        url = URLBuilder.get_document_url(self.domain, params.document_id)
+        request = requests.Request("GET", url=url, headers=headers, params=params_dict).prepare()
+        response = self._try_make_request(request)
+        json_response = response.json()
+
+        return cast(PDFGateDocument, convert_keys_to_snake_case(json_response))
+
+    def get_file(self, params: GetFileParams) -> bytes:
+        """Download a raw PDF file by its document ID.
+
+        Returns:
+            The raw bytes of the file.
+        """
+        headers = self.get_base_headers()
+
+        url = URLBuilder.get_file_url(self.domain, params.document_id)
+        request = requests.Request("GET", url=url, headers=headers).prepare()
+        response = self._try_make_request(request)
+
+        return response.content
+
+    def _try_make_request(self, request: requests.PreparedRequest, timeout: int = 60) -> requests.Response:
         try:
-            url = URLBuilder.get_document_url(self.domain, params.document_id)
-            response = requests.get(url=url, headers=headers, params=params_dict)
+            with requests.Session() as session:
+                response = session.send(request, timeout=timeout)
+
             response.raise_for_status()
         except requests.HTTPError as e:
             if e.response is None:
@@ -116,6 +166,8 @@ class PDFGate:
             status_code = e.response.status_code
             content_type = e.response.headers.get('Content-Type', '')
             message = e.response.text
+            print(f"message: {message}")
+            print(f"response.json(): {e.response.json()}")
             if 'application/json' in content_type:
                 try:
                     error_info = e.response.json()
@@ -128,6 +180,31 @@ class PDFGate:
             # Timeout, ConnectionError, etc.
             raise PDFGateError(f"Request failed: {e}") from e
 
-        json_response = response.json()
+        return response
 
-        return cast(PDFGateDocument, convert_keys_to_snake_case(json_response))
+    def generate_pdf(self, params: GeneratePDFParams) -> Union[bytes, PDFGateDocument]:
+        """Generate a PDF document.
+
+        Depending on the `json_response` flag in `params`, this method either
+        returns the raw PDF bytes or a `PDFGateDocument` instance.
+        """
+        if not params.html and not params.url:
+            raise ParamsValidationError("Either the 'html' or 'url' parameters must be provided to generate a PDF.")
+
+        headers = self.get_base_headers()
+        url = URLBuilder.generate_pdf_url(self.domain)
+        params_dict = asdict(params)
+        params_without_nulls: dict[str, Any] = {}
+        for k, v in params_dict.items():
+            if v is not None:
+                params_without_nulls[snake_to_camel(k)] = v
+
+        request = requests.Request("POST", url=url, headers=headers, json=params_without_nulls).prepare()
+        timeout = int(timedelta(minutes=15).total_seconds())
+        response = self._try_make_request(request, timeout=timeout)
+
+        if params.json_response:
+            json_response = response.json()
+            return cast(PDFGateDocument, convert_keys_to_snake_case(json_response))
+
+        return response.content

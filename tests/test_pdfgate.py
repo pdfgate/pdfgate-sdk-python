@@ -5,8 +5,8 @@ import uuid
 import pytest
 import responses
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN
-from pdfgate_sdk_python.errors import PDFGateError
-from pdfgate_sdk_python.params import GetDocumentParams
+from pdfgate_sdk_python.errors import PDFGateError, ParamsValidationError
+from pdfgate_sdk_python.params import GeneratePDFParams, GetDocumentParams
 from pdfgate_sdk_python.pdfgate import PDFGate, URLBuilder
 from requests import exceptions
 
@@ -87,3 +87,10 @@ def test_get_document_returns_document() -> None:
     assert document.get("status") == mock_response["status"]
     assert document.get("created_at") == mock_response["createdAt"]
     assert document.get("file_url") == mock_response["fileUrl"]
+
+def test_generate_pdf_raises_when_neither_html_nor_url_provided() -> None:
+    client = PDFGate(api_key=VALID_API_KEY)
+    params = GeneratePDFParams()
+
+    with pytest.raises(ParamsValidationError):
+        client.generate_pdf(params)
