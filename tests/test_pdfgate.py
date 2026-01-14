@@ -89,3 +89,13 @@ def test_generate_pdf_raises_when_neither_html_nor_url_provided() -> None:
 
     with pytest.raises(ParamsValidationError):
         client.generate_pdf(params)
+
+def test_generate_pdf_raises_when_both_html_and_url_provided() -> None:
+    client = PDFGate(api_key=VALID_API_KEY)
+    params = GeneratePDFParams(
+        html="<h1>Test</h1>",
+        url="https://example.com"
+    )
+
+    with pytest.raises(ParamsValidationError):
+        client.generate_pdf(params)
