@@ -3,18 +3,18 @@ from typing import Any
 from pdfgate_sdk_python.dict_keys_converter import camel_to_snake, convert_camel_keys_to_snake, convert_snake_keys_to_camel, snake_to_camel
 
 
-def test_camel_to_snake():
+def test_camel_to_snake() -> None:
     assert camel_to_snake("simpleTest") == "simple_test"
     assert camel_to_snake("TestHTTPResponse") == "test_http_response"
     assert camel_to_snake("already_snake_case") == "already_snake_case"
     assert camel_to_snake("mixedExampleTestCase") == "mixed_example_test_case"
     
-def test_snake_to_camel():
+def test_snake_to_camel() -> None:
     assert snake_to_camel("simple_test") == "simpleTest"
     assert snake_to_camel("alreadyCamelCase") == "alreadyCamelCase"
     assert snake_to_camel("mixed_example_case") == "mixedExampleCase"
 
-def test_convert_camel_keys_to_snake():
+def test_convert_camel_keys_to_snake() -> None:
     data: dict[Any, Any] = {
         "firstKey": "value1",
         "secondKey": {
@@ -34,7 +34,7 @@ def test_convert_camel_keys_to_snake():
     }
     assert converted == expected
 
-def test_convert_snake_keys_to_camel():
+def test_convert_snake_keys_to_camel() -> None:
     data: dict[Any, Any] = {
         "first_key": "value1",
         "second_key": {
