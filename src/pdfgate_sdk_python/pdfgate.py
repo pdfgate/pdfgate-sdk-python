@@ -166,8 +166,6 @@ class PDFGate:
             status_code = e.response.status_code
             content_type = e.response.headers.get('Content-Type', '')
             message = e.response.text
-            print(f"message: {message}")
-            print(f"response.json(): {e.response.json()}")
             if 'application/json' in content_type:
                 try:
                     error_info = e.response.json()
