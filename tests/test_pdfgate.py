@@ -3,11 +3,12 @@ import random
 from typing import Union
 import uuid
 import pytest
+import requests
 import responses
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN
 from pdfgate_sdk_python.errors import PDFGateError, ParamsValidationError
 from pdfgate_sdk_python.params import GeneratePDFParams, GetDocumentParams
-from pdfgate_sdk_python.pdfgate import PDFGate, URLBuilder
+from pdfgate_sdk_python.pdfgate import PDFGate, URLBuilder, try_make_request
 from requests import exceptions
 
 
@@ -24,27 +25,24 @@ def test_invalid_api_key_raises() -> None:
         PDFGate("wrong_prefix_213123")
 
 @responses.activate
-def test_get_document_raises_when_request_returns_an_http_error() -> None:
+def test_try_make_request_raises_when_request_returns_an_http_error() -> None:
+    url = "https://example.com"
+    message = "Required field 'pdf' is missing"
     responses.add(
         responses.GET,
-        URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, DOCUMENT_ID),
+        url,
         json={
             "statusCode": 400,
-            "message": "preSignedUrlExpiresIn: preSignedUrlExpiresIn must not be greater than 86400",
+            "message": message,
             "error": "Bad Request"
         },
         status=400
     )
-    client = PDFGate(api_key=VALID_API_KEY)
-    invalid_pre_signed_url_expires_in = 90000  # Invalid value greater than 86400
-    params = GetDocumentParams(
-        document_id=DOCUMENT_ID,
-        pre_signed_url_expires_in=invalid_pre_signed_url_expires_in
-    )
+    request = requests.Request("GET", url=url).prepare()
 
-    error_message_pattern = r"HTTP Error.*400.*preSignedUrlExpiresIn must not be greater than.*"
+    error_message_pattern = rf"HTTP Error.*400.*{message}.*"
     with pytest.raises(PDFGateError, match=error_message_pattern):
-        client.get_document(params)
+        try_make_request(request)
 
 
 @pytest.mark.parametrize("body, match_pattern", [
@@ -52,16 +50,13 @@ def test_get_document_raises_when_request_returns_an_http_error() -> None:
     (exceptions.ConnectionError("Connection failed"), r"Request failed.*Connection failed"),
 ])
 @responses.activate
-def test_get_document_raises_when_request_fails(body: Exception, match_pattern: str) -> None:
-    responses.add(
-        responses.GET,
-        URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, DOCUMENT_ID),
-        body=body
-    )
-    client = PDFGate(api_key=VALID_API_KEY)
-    params = GetDocumentParams(document_id=DOCUMENT_ID)
+def test_try_make_request_raises_when_request_fails(body: Exception, match_pattern: str) -> None:
+    url = "https://example.com"
+    responses.add(responses.GET, url, body=body)
+    request = requests.Request("GET", url=url).prepare()
+
     with pytest.raises(PDFGateError, match=match_pattern):
-        client.get_document(params)
+        try_make_request(request)
 
 @responses.activate
 def test_get_document_returns_document() -> None:

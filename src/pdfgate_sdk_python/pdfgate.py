@@ -76,6 +76,34 @@ class URLBuilder:
         """
         return f"{domain}/v1/generate/pdf"
 
+def try_make_request(request: requests.PreparedRequest, timeout: int = 60) -> requests.Response:
+    try:
+        with requests.Session() as session:
+            response = session.send(request, timeout=timeout)
+
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        if e.response is None:
+            raise PDFGateError(f"HTTP Error without response: {e}") from e
+        
+        status_code = e.response.status_code
+        content_type = e.response.headers.get('Content-Type', '')
+        message = e.response.text
+        if 'application/json' in content_type:
+            try:
+                error_info = e.response.json()
+                message = error_info.get("message", e.response.text)
+            except ValueError:
+                message = e.response.text
+
+        raise PDFGateError(f"HTTP Error: status {status_code} - message: {message}") from e
+    except requests.RequestException as e:
+        # Timeout, ConnectionError, etc.
+        raise PDFGateError(f"Request failed: {e}") from e
+
+    return response
+
+
 class PDFGate:
     """Client for the PDFGate API.
 
@@ -134,7 +162,7 @@ class PDFGate:
         
         url = URLBuilder.get_document_url(self.domain, params.document_id)
         request = requests.Request("GET", url=url, headers=headers, params=params_dict).prepare()
-        response = self._try_make_request(request)
+        response = try_make_request(request)
         json_response = response.json()
 
         return cast(PDFGateDocument, convert_keys_to_snake_case(json_response))
@@ -149,36 +177,9 @@ class PDFGate:
 
         url = URLBuilder.get_file_url(self.domain, params.document_id)
         request = requests.Request("GET", url=url, headers=headers).prepare()
-        response = self._try_make_request(request)
+        response = try_make_request(request)
 
         return response.content
-
-    def _try_make_request(self, request: requests.PreparedRequest, timeout: int = 60) -> requests.Response:
-        try:
-            with requests.Session() as session:
-                response = session.send(request, timeout=timeout)
-
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            if e.response is None:
-                raise PDFGateError(f"HTTP Error without response: {e}") from e
-            
-            status_code = e.response.status_code
-            content_type = e.response.headers.get('Content-Type', '')
-            message = e.response.text
-            if 'application/json' in content_type:
-                try:
-                    error_info = e.response.json()
-                    message = error_info.get("message", e.response.text)
-                except ValueError:
-                    message = e.response.text
-
-            raise PDFGateError(f"HTTP Error: status {status_code} - message: {message}") from e
-        except requests.RequestException as e:
-            # Timeout, ConnectionError, etc.
-            raise PDFGateError(f"Request failed: {e}") from e
-
-        return response
 
     def generate_pdf(self, params: GeneratePDFParams) -> Union[bytes, PDFGateDocument]:
         """Generate a PDF document.
@@ -199,7 +200,7 @@ class PDFGate:
 
         request = requests.Request("POST", url=url, headers=headers, json=params_without_nulls).prepare()
         timeout = int(timedelta(minutes=15).total_seconds())
-        response = self._try_make_request(request, timeout=timeout)
+        response = try_make_request(request, timeout=timeout)
 
         if params.json_response:
             json_response = response.json()
