@@ -1,6 +1,6 @@
 from datetime import datetime
 import random
-from typing import Union
+from typing import TypedDict, Union
 import uuid
 import pytest
 import requests
@@ -11,14 +11,34 @@ from pdfgate_sdk_python.params import GeneratePDFParams, GetDocumentParams
 from pdfgate_sdk_python.pdfgate import PDFGate, URLBuilder, try_make_request
 from requests import exceptions
 
+from pdfgate_sdk_python.responses import DocumentStatus
 
-VALID_API_KEY = f"live_{str(uuid.uuid4())}"
+
+RANDOM_PRODUCTION_API_KEY = f"live_{str(uuid.uuid4())}"
 DOCUMENT_ID = str(uuid.uuid4())
 
 class TestURLBuilder:
     @staticmethod
     def random_file_url() -> str:
         return f"{PRODUCTION_API_DOMAIN}/file/open/{str(uuid.uuid4())}"
+
+
+class DocumentResponse(TypedDict):
+    id: str
+    status: str
+    createdAt: str
+    fileUrl: str
+    size: int
+
+
+def random_document_response() -> DocumentResponse:
+    return {
+        "id": str(uuid.uuid4()),
+        "status": random.choice([status.value for status in DocumentStatus]),
+        "fileUrl": TestURLBuilder.random_file_url(),
+        "size": random.randint(1000, 1000000),
+        "createdAt": datetime.now().isoformat(),
+    }
 
 def test_invalid_api_key_raises() -> None:
     with pytest.raises(PDFGateError, match="Invalid API key format"):
@@ -60,38 +80,32 @@ def test_try_make_request_raises_when_request_fails(body: Exception, match_patte
 
 @responses.activate
 def test_get_document_returns_document() -> None:
-    mock_response: dict[str, Union[str, int]] = {
-        "id": DOCUMENT_ID,
-        "status": "completed",
-        "fileUrl": TestURLBuilder.random_file_url(),
-        "size": random.randint(1000, 1000000),
-        "createdAt": datetime.now().isoformat(),
-    }
+    document_response = random_document_response()
     responses.add(
         responses.GET,
-        URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, DOCUMENT_ID),
-        json=mock_response,
+        URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, document_response["id"]),
+        json=document_response,
         status=200
     )
-    client = PDFGate(api_key=VALID_API_KEY)
-    params = GetDocumentParams(document_id=DOCUMENT_ID)
+    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
+    params = GetDocumentParams(document_id=document_response["id"])
 
     document = client.get_document(params)
 
-    assert document.get("id") == mock_response["id"]
-    assert document.get("status") == mock_response["status"]
-    assert document.get("created_at") == mock_response["createdAt"]
-    assert document.get("file_url") == mock_response["fileUrl"]
+    assert document.get("id") == document_response["id"]
+    assert document.get("status") == document_response["status"]
+    assert document.get("created_at") == document_response["createdAt"]
+    assert document.get("file_url") == document_response["fileUrl"]
 
 def test_generate_pdf_raises_when_neither_html_nor_url_provided() -> None:
-    client = PDFGate(api_key=VALID_API_KEY)
+    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
     params = GeneratePDFParams()
 
     with pytest.raises(ParamsValidationError):
         client.generate_pdf(params)
 
 def test_generate_pdf_raises_when_both_html_and_url_provided() -> None:
-    client = PDFGate(api_key=VALID_API_KEY)
+    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
     params = GeneratePDFParams(
         html="<h1>Test</h1>",
         url="https://example.com"
@@ -99,3 +113,25 @@ def test_generate_pdf_raises_when_both_html_and_url_provided() -> None:
 
     with pytest.raises(ParamsValidationError):
         client.generate_pdf(params)
+
+@responses.activate
+def test_generate_pdf_returns_json_when_json_reponse_true() -> None:
+    document_response = random_document_response()
+    responses.add(
+        responses.POST,
+        URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
+        json=document_response,
+        status=200
+    )
+    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
+    params = GeneratePDFParams(
+        html="<h1>Test</h1>",
+        json_response=True
+    )
+
+    response = client.generate_pdf(params)
+    assert isinstance(response, dict)
+    assert response.get("id") == document_response["id"]
+    assert response.get("status") == document_response["status"]
+    assert response.get("created_at") == document_response["createdAt"]
+    assert response.get("file_url") == document_response["fileUrl"]
