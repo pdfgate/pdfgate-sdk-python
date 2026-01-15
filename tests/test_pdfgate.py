@@ -31,7 +31,8 @@ class DocumentResponse(TypedDict):
     size: int
 
 
-def random_document_response() -> DocumentResponse:
+@pytest.fixture
+def document_response() -> DocumentResponse:
     return {
         "id": str(uuid.uuid4()),
         "status": random.choice([status.value for status in DocumentStatus]),
@@ -79,8 +80,7 @@ def test_try_make_request_raises_when_request_fails(body: Exception, match_patte
         try_make_request(request)
 
 @responses.activate
-def test_get_document_returns_document() -> None:
-    document_response = random_document_response()
+def test_get_document_returns_document(document_response: DocumentResponse) -> None:
     responses.add(
         responses.GET,
         URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, document_response["id"]),
@@ -115,8 +115,7 @@ def test_generate_pdf_raises_when_both_html_and_url_provided() -> None:
         client.generate_pdf(params)
 
 @responses.activate
-def test_generate_pdf_returns_json_when_json_reponse_true() -> None:
-    document_response = random_document_response()
+def test_generate_pdf_returns_json_when_json_reponse_true(document_response: DocumentResponse) -> None:
     responses.add(
         responses.POST,
         URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
