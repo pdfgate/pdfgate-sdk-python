@@ -1,12 +1,13 @@
 
 import io
 import os
-from typing import Any, cast
+import sys
+from typing import Any, TypedDict, cast
 import uuid
 
 import pytest
 import pypdf
-from pdfgate_sdk_python.params import ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams, FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam, ProtectPDFByDocumentIdParams, ProtectPDFByFileParams
+from pdfgate_sdk_python.params import CompressPDFByDocumentIdParams, CompressPDFByFileParams, ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams, FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam, ProtectPDFByDocumentIdParams, ProtectPDFByFileParams
 from pdfgate_sdk_python.pdfgate import PDFGate
 from pdfgate_sdk_python.responses import PDFGateDocument
 
@@ -21,12 +22,27 @@ def client(api_key: str) -> PDFGate:
     return PDFGate(api_key=api_key)
 
 @pytest.fixture(scope="module")
-def document_id(client: PDFGate) -> str:
+def pdf_document(client: PDFGate) -> PDFGateDocument:
     generate_pdf_params = GeneratePDFParams(html="<html><body><h1>Hello, PDFGate!</h1></body></html>", json_response=True)
     document_response = client.generate_pdf(generate_pdf_params)
     pdf_document = cast(PDFGateDocument, document_response)
 
+    return pdf_document
+
+@pytest.fixture(scope="module")
+def document_id(pdf_document: PDFGateDocument) -> str:
     return pdf_document.get("id", "")
+
+class DocumentIdWithSize(TypedDict):
+    document_id: str
+    size: int
+
+@pytest.fixture(scope="module")
+def document_id_with_size(pdf_document: PDFGateDocument) -> DocumentIdWithSize:
+    return {
+        "document_id": pdf_document.get("id", ""),
+        "size": cast(int, pdf_document.get("size", 0))
+    }
 
 @pytest.fixture(scope="module")
 def pdf_file(client: PDFGate) -> bytes:
@@ -153,3 +169,34 @@ def test_protect_pdf_by_file_with_file_response(client: PDFGate, pdf_file: bytes
     assert reader.is_encrypted
     assert reader.decrypt(user_password) == pypdf.PasswordType.USER_PASSWORD
     assert reader.decrypt(owner_password) == pypdf.PasswordType.OWNER_PASSWORD
+
+def test_compress_pdf_by_document_id_with_json_response(client:PDFGate, document_id_with_size: DocumentIdWithSize) -> None:
+    compress_pdf_params = CompressPDFByDocumentIdParams(
+        document_id=document_id_with_size["document_id"],
+        json_response=True
+    )
+
+    response = client.compress_pdf(compress_pdf_params)
+    
+    assert isinstance(response, dict)
+    assert "id" in response and response.get("id")  != document_id_with_size["document_id"]
+    assert "status" in response and response.get("status")  == "completed"
+    assert "type" in response and response.get("type")  == "compressed"
+    assert "size" in response and cast(int, response.get("size", sys.maxsize))  <  document_id_with_size["size"]
+
+def test_compress_pdf_by_file_with_file_response(client:PDFGate, pdf_file: bytes) -> None:
+    with open("input.pdf", "wb") as f:
+        f.write(pdf_file)
+
+    compress_pdf_params = CompressPDFByFileParams(
+        file=PDFFileParam(name="input.pdf", data=pdf_file),
+        json_response=False
+    )
+
+    compressed_file = client.compress_pdf(compress_pdf_params)
+    
+    assert isinstance(compressed_file, bytes)
+    assert compressed_file.startswith(b'%PDF')
+    # The Sandobox API may not always yield a smaller file because it adds
+    # a watermark.
+    # assert len(compressed_file) < len(pdf_file)
