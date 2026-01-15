@@ -1,9 +1,9 @@
 
 import os
-from typing import cast
+from typing import Any, cast
 
 import pytest
-from pdfgate_sdk_python.params import FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam
+from pdfgate_sdk_python.params import ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams, FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam
 from pdfgate_sdk_python.pdfgate import PDFGate
 from pdfgate_sdk_python.responses import PDFGateDocument
 
@@ -33,6 +33,15 @@ def pdf_file(client: PDFGate) -> bytes:
     assert isinstance(file_content, bytes)
 
     return file_content
+
+@pytest.fixture
+def html_with_form() -> str:
+    return """
+        <form>
+            <input type='text' name='first_name' value='John'/>
+            <input type='text' name='last_name' value='Doe'/>
+        </form>
+        """
 
 def test_generate_pdf_with_json_response(client: PDFGate) -> None:
     generate_pdf_params = GeneratePDFParams(html="<html><body><h1>Hello, PDFGate!</h1></body></html>", json_response=True)
@@ -83,3 +92,26 @@ def test_flatten_pdf_by_file(client: PDFGate, pdf_file: bytes) -> None:
     assert "id" in flattened_document
     assert "status" in flattened_document
     assert "created_at" in flattened_document
+
+def test_extract_pdf_form_data_by_document_id(client: PDFGate, html_with_form: str) -> None:
+    generate_pdf_params = GeneratePDFParams(html=html_with_form, enable_form_fields=True, json_response=True)
+    document_response = cast(PDFGateDocument, client.generate_pdf(generate_pdf_params))
+    document_id = cast(str, document_response.get("id"))
+
+    extract_form_params = ExtractPDFFormDataByDocumentIdParams(document_id=document_id)
+    response = cast(dict[str, Any], client.extract_pdf_form_data(extract_form_params))
+
+    assert isinstance(response, dict)
+    assert "first_name" in response and response.get("first_name")  == "John"
+    assert "last_name" in response and response.get("last_name")  == "Doe"
+
+def test_extract_pdf_form_data_by_file(client: PDFGate, html_with_form: str) -> None:
+    generate_pdf_params = GeneratePDFParams(html=html_with_form, enable_form_fields=True, json_response=False)
+    file_content = cast(bytes, client.generate_pdf(generate_pdf_params))
+
+    extract_form_params = ExtractPDFFormDataByFileParams(file=PDFFileParam(name="input.pdf", data=file_content))
+    response = cast(dict[str, Any], client.extract_pdf_form_data(extract_form_params))
+
+    assert isinstance(response, dict)
+    assert "first_name" in response and response.get("first_name")  == "John"
+    assert "last_name" in response and response.get("last_name")  == "Doe"

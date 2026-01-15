@@ -11,7 +11,7 @@ import requests
 from pdfgate_sdk_python.dict_keys_converter import convert_camel_keys_to_snake, snake_to_camel
 
 from .errors import PDFGateError, ParamsValidationError
-from .params import FlattenPDFParams, GeneratePDFParams, GetDocumentParams, GetFileParams
+from .params import ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataParams, FlattenPDFParams, GeneratePDFParams, GetDocumentParams, GetFileParams
 from .responses import PDFGateDocument
 from .constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 
@@ -87,6 +87,16 @@ class URLBuilder:
                 Base API domain.
         """
         return f"{domain}/forms/flatten"
+
+    @staticmethod
+    def extract_pdf_form_data_url(domain: str) -> str:
+        """Build the URL for extracting PDF form data.
+
+        Args:
+            domain:
+                Base API domain.
+        """
+        return f"{domain}/forms/extract-data"
 
 def try_make_request(request: requests.PreparedRequest, timeout: int = 60) -> requests.Response:
     try:
@@ -248,3 +258,18 @@ class PDFGate:
             return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
 
         return response.content
+
+    def extract_pdf_form_data(self, params: ExtractPDFFormDataParams) -> Any:
+        headers = self.get_base_headers()
+        url = URLBuilder.extract_pdf_form_data_url(self.domain)
+        if isinstance(params, ExtractPDFFormDataByDocumentIdParams):
+            params_dict = {"documentId": params.document_id}
+            request = requests.Request("POST", url=url, headers=headers, data=params_dict).prepare()
+        else:
+            request = requests.Request("POST", url=url, headers=headers, files={"file": params.file}).prepare()
+
+        response = try_make_request(request)
+
+        json_response = response.json()
+
+        return convert_camel_keys_to_snake(json_response)

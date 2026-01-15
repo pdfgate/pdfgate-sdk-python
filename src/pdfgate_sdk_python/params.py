@@ -115,3 +115,13 @@ class FlattenPDFDocumentParams(FlattenPDFBaseParams):
    document_id: Optional[str] = None
 
 FlattenPDFParams = Union[FlattenPDFBinaryParams, FlattenPDFDocumentParams]
+
+@dataclass
+class ExtractPDFFormDataByDocumentIdParams:
+   document_id: str
+
+@dataclass
+class ExtractPDFFormDataByFileParams:
+   file: PDFFileParam
+
+ExtractPDFFormDataParams = Union[ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams]
