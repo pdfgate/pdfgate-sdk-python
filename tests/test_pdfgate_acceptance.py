@@ -3,7 +3,7 @@ import os
 from typing import cast
 
 import pytest
-from pdfgate_sdk_python.params import GeneratePDFParams, GetDocumentParams, GetFileParams
+from pdfgate_sdk_python.params import FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam
 from pdfgate_sdk_python.pdfgate import PDFGate
 from pdfgate_sdk_python.responses import PDFGateDocument
 
@@ -63,3 +63,23 @@ def test_get_document(client: PDFGate, document_id: str) -> None:
     assert "id" in document_response
     assert "status" in document_response
     assert "created_at" in document_response
+
+def test_flatten_pdf_by_document_id(client: PDFGate, document_id: str) -> None:
+    flatten_pdf_params = FlattenPDFDocumentParams(document_id=document_id, json_response=True)
+    flattened_document = client.flatten_pdf(flatten_pdf_params)
+
+    assert isinstance(flattened_document, dict)
+    assert "id" in flattened_document
+    assert flattened_document["id"] != document_id
+    assert "status" in flattened_document
+    assert "created_at" in flattened_document
+
+def test_flatten_pdf_by_file(client: PDFGate, pdf_file: bytes) -> None:
+    file_param = PDFFileParam(name="input.pdf", data=pdf_file)
+    flatten_pdf_params = FlattenPDFBinaryParams(file=file_param, json_response=True)
+    flattened_document = client.flatten_pdf(flatten_pdf_params)
+
+    assert isinstance(flattened_document, dict)
+    assert "id" in flattened_document
+    assert "status" in flattened_document
+    assert "created_at" in flattened_document

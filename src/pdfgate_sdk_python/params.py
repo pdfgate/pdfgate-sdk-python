@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional, Union
 
 
 class PageSizeType(Enum):
@@ -94,3 +94,24 @@ class GeneratePDFParams:
     page_ranges: Optional[str] = None
     print_background: Optional[bool] = None
     user_agent: Optional[str] = None
+
+@dataclass
+class FlattenPDFBaseParams:
+   json_response: Optional[bool] = False
+   pre_signed_url_expires_in: Optional[int] = None
+   metadata: Optional[Any] = None
+
+class PDFFileParam(NamedTuple):
+   name: str
+   data: bytes
+   type: str = "application/pdf"
+
+@dataclass
+class FlattenPDFBinaryParams(FlattenPDFBaseParams):
+   file: Optional[PDFFileParam] = None
+
+@dataclass
+class FlattenPDFDocumentParams(FlattenPDFBaseParams):
+   document_id: Optional[str] = None
+
+FlattenPDFParams = Union[FlattenPDFBinaryParams, FlattenPDFDocumentParams]
