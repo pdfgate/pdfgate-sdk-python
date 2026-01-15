@@ -53,7 +53,9 @@ lint = "ruff check ."
 dependencies = [
   "pytest",
   "pytest-cov",
-  "responses"
+  "responses",
+  "cryptography>=3.1",
+  "pypdf"
 ]
 
 [tool.hatch.envs.test.scripts]

@@ -125,3 +125,30 @@ class ExtractPDFFormDataByFileParams:
    file: PDFFileParam
 
 ExtractPDFFormDataParams = Union[ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams]
+
+class EncryptionAlgorithm(Enum):
+   AES_256 = "AES256"
+   AES_128 = "AES128"
+
+@dataclass
+class ProtectPDFBaseParams:
+    algorithm: Optional[EncryptionAlgorithm] = None
+    user_password: Optional[str] = None
+    owner_password: Optional[str] = None
+    disable_print: Optional[bool] = None
+    disable_copy: Optional[bool] = None
+    disable_editing: Optional[bool] = None
+    encrypt_metadata: Optional[bool] = None
+    json_response: Optional[bool] = False
+    pre_signed_url_expires_in: Optional[int] = None
+    metadata: Optional[Any] = None
+
+@dataclass
+class ProtectPDFByDocumentIdParams(ProtectPDFBaseParams):
+    document_id: Optional[str] = None
+
+@dataclass
+class ProtectPDFByFileParams(ProtectPDFBaseParams):
+    file: Optional[PDFFileParam] = None
+
+ProtectPDFParams = Union[ProtectPDFByDocumentIdParams, ProtectPDFByFileParams]

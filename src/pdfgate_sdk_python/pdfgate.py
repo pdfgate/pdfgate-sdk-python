@@ -5,13 +5,14 @@ Client for interacting with the PDFGate API.
 
 from dataclasses import asdict
 from datetime import timedelta
+from enum import Enum
 from typing import Any, Union, cast
 import requests
 
 from pdfgate_sdk_python.dict_keys_converter import convert_camel_keys_to_snake, snake_to_camel
 
 from .errors import PDFGateError, ParamsValidationError
-from .params import ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataParams, FlattenPDFParams, GeneratePDFParams, GetDocumentParams, GetFileParams
+from .params import ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataParams, FlattenPDFParams, GeneratePDFParams, GetDocumentParams, GetFileParams, ProtectPDFByDocumentIdParams, ProtectPDFParams
 from .responses import PDFGateDocument
 from .constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 
@@ -97,6 +98,16 @@ class URLBuilder:
                 Base API domain.
         """
         return f"{domain}/forms/extract-data"
+
+    @staticmethod
+    def protect_pdf_url(domain: str) -> str:
+        """Build the URL for encrypting a PDF.
+
+        Args:
+            domain:
+                Base API domain.
+        """
+        return f"{domain}/protect/pdf"
 
 def try_make_request(request: requests.PreparedRequest, timeout: int = 60) -> requests.Response:
     try:
@@ -273,3 +284,39 @@ class PDFGate:
         json_response = response.json()
 
         return convert_camel_keys_to_snake(json_response)
+
+    def protect_pdf(self, params: ProtectPDFParams) -> Union[bytes, PDFGateDocument]:
+        """Protect a PDF document by applying encryption.
+
+        Sends a POST request to the `/document/protect` endpoint.
+
+        Args:
+            params:
+                Parameters for the request, provided as a `ProtectPDFByDocumentIdParams` instance.
+
+        Returns:
+            A `PDFGateDocument` parsed from the JSON response.
+        """
+        headers = self.get_base_headers()
+        url = URLBuilder.protect_pdf_url(self.domain)
+
+        params_dict = asdict(params)
+        params_without_nulls: dict[str, Any] = {}
+        for k, v in params_dict.items():
+            if v is not None:
+                params_without_nulls[snake_to_camel(k)] = v.value if isinstance(v, Enum) else v
+
+        if isinstance(params, ProtectPDFByDocumentIdParams):
+            request = requests.Request("POST", url=url, headers=headers, data=params_without_nulls).prepare()
+        else:
+            file_param = {"file": params_without_nulls.pop("file", None)}
+            request = requests.Request("POST", url=url, headers=headers, data=params_without_nulls, files=file_param).prepare()
+
+        timeout = int(timedelta(minutes=3).total_seconds())
+        response = try_make_request(request, timeout=timeout)
+
+        if params.json_response:
+            json_response = response.json()
+            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
+
+        return response.content

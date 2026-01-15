@@ -44,3 +44,4 @@ def convert_snake_keys_to_camel(data: Union[dict[Any, Any], list[Any], Any]) -> 
         return [convert_snake_keys_to_camel(item) for item in data] # type: ignore
     else:
         return data
+

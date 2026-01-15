@@ -1,9 +1,12 @@
 
+import io
 import os
 from typing import Any, cast
+import uuid
 
 import pytest
-from pdfgate_sdk_python.params import ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams, FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam
+import pypdf
+from pdfgate_sdk_python.params import ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams, FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam, ProtectPDFByDocumentIdParams, ProtectPDFByFileParams
 from pdfgate_sdk_python.pdfgate import PDFGate
 from pdfgate_sdk_python.responses import PDFGateDocument
 
@@ -115,3 +118,38 @@ def test_extract_pdf_form_data_by_file(client: PDFGate, html_with_form: str) -> 
     assert isinstance(response, dict)
     assert "first_name" in response and response.get("first_name")  == "John"
     assert "last_name" in response and response.get("last_name")  == "Doe"
+
+def test_protect_pdf_by_document_id_with_json_response(client:PDFGate, document_id: str) -> None:
+    user_password = str(uuid.uuid4())
+    owner_password = str(uuid.uuid4())
+    protect_pdf_params = ProtectPDFByDocumentIdParams(
+        document_id=document_id,
+        user_password=user_password,
+        owner_password=owner_password,
+        json_response=True
+    )
+
+    response = client.protect_pdf(protect_pdf_params)
+    
+    assert isinstance(response, dict)
+    assert "id" in response and response.get("id")  != document_id
+    assert "status" in response and response.get("status")  == "completed"
+
+def test_protect_pdf_by_file_with_file_response(client: PDFGate, pdf_file: bytes) -> None:
+    user_password = str(uuid.uuid4())
+    owner_password = str(uuid.uuid4())
+    protect_pdf_params = ProtectPDFByFileParams(
+        file=PDFFileParam(name="input.pdf", data=pdf_file),
+        user_password=user_password,
+        owner_password=owner_password,
+        json_response=False
+    )
+
+    protected_file_content = client.protect_pdf(protect_pdf_params)
+
+    assert isinstance(protected_file_content, bytes)
+
+    reader = pypdf.PdfReader(io.BytesIO(protected_file_content))
+    assert reader.is_encrypted
+    assert reader.decrypt(user_password) == pypdf.PasswordType.USER_PASSWORD
+    assert reader.decrypt(owner_password) == pypdf.PasswordType.OWNER_PASSWORD
