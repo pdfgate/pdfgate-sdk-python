@@ -30,6 +30,13 @@ class DocumentResponse(TypedDict):
     fileUrl: str
     size: int
 
+@pytest.fixture
+def document_id() -> str:
+    return str(uuid.uuid4())
+
+@pytest.fixture
+def client() -> PDFGate:
+    return PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
 
 @pytest.fixture
 def document_response() -> DocumentResponse:
@@ -80,14 +87,13 @@ def test_try_make_request_raises_when_request_fails(body: Exception, match_patte
         try_make_request(request)
 
 @responses.activate
-def test_get_document_returns_document(document_response: DocumentResponse) -> None:
+def test_get_document_returns_document(client: PDFGate, document_response: DocumentResponse) -> None:
     responses.add(
         responses.GET,
         URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, document_response["id"]),
         json=document_response,
         status=200
     )
-    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
     params = GetDocumentParams(document_id=document_response["id"])
 
     document = client.get_document(params)
@@ -97,15 +103,13 @@ def test_get_document_returns_document(document_response: DocumentResponse) -> N
     assert document.get("created_at") == document_response["createdAt"]
     assert document.get("file_url") == document_response["fileUrl"]
 
-def test_generate_pdf_raises_when_neither_html_nor_url_provided() -> None:
-    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
+def test_generate_pdf_raises_when_neither_html_nor_url_provided(client: PDFGate) -> None:
     params = GeneratePDFParams()
 
     with pytest.raises(ParamsValidationError):
         client.generate_pdf(params)
 
-def test_generate_pdf_raises_when_both_html_and_url_provided() -> None:
-    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
+def test_generate_pdf_raises_when_both_html_and_url_provided(client: PDFGate) -> None:
     params = GeneratePDFParams(
         html="<h1>Test</h1>",
         url="https://example.com"
@@ -115,14 +119,13 @@ def test_generate_pdf_raises_when_both_html_and_url_provided() -> None:
         client.generate_pdf(params)
 
 @responses.activate
-def test_generate_pdf_returns_json_when_json_reponse_true(document_response: DocumentResponse) -> None:
+def test_generate_pdf_returns_json_when_json_reponse_true(document_response: DocumentResponse, client: PDFGate) -> None:
     responses.add(
         responses.POST,
         URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
         json=document_response,
         status=201
     )
-    client = PDFGate(api_key=RANDOM_PRODUCTION_API_KEY)
     params = GeneratePDFParams(
         html="<h1>Test</h1>",
         json_response=True
@@ -135,7 +138,7 @@ def test_generate_pdf_returns_json_when_json_reponse_true(document_response: Doc
     assert response.get("created_at") == document_response["createdAt"]
 
 @responses.activate
-def test_generate_pdf_returns_bytes_when_json_reponse_false() -> None:
+def test_generate_pdf_returns_bytes_when_json_reponse_false(client: PDFGate) -> None:
     responses.add(
         responses.POST,
         URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
