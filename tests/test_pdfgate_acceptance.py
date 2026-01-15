@@ -7,7 +7,7 @@ import uuid
 
 import pytest
 import pypdf
-from pdfgate_sdk_python.params import CompressPDFByDocumentIdParams, CompressPDFByFileParams, ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams, FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam, ProtectPDFByDocumentIdParams, ProtectPDFByFileParams
+from pdfgate_sdk_python.params import CompressPDFByDocumentIdParams, CompressPDFByFileParams, ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams, FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, GetFileParams, PDFFileParam, ProtectPDFByDocumentIdParams, ProtectPDFByFileParams, WatermarkPDFByDocumentIdParams, WatermarkType
 from pdfgate_sdk_python.pdfgate import PDFGate
 from pdfgate_sdk_python.responses import PDFGateDocument
 
@@ -184,7 +184,6 @@ def test_compress_pdf_by_document_id_with_json_response(client:PDFGate, document
     assert "type" in response and response.get("type")  == "compressed"
     assert "size" in response and cast(int, response.get("size", sys.maxsize))  <  document_id_with_size["size"]
 
-@pytest.mark.dev
 def test_compress_pdf_by_file_with_file_response(client:PDFGate, pdf_file: bytes) -> None:
     with open("input.pdf", "wb") as f:
         f.write(pdf_file)
@@ -201,3 +200,24 @@ def test_compress_pdf_by_file_with_file_response(client:PDFGate, pdf_file: bytes
     # The Sandobox API may not always yield a smaller file because it adds
     # a watermark.
     # assert len(compressed_file) < len(pdf_file)
+
+@pytest.mark.dev
+def test_watermark_pdf_with_text_by_document_id(client: PDFGate, document_id: str) -> None:
+    watermark_pdf_params = WatermarkPDFByDocumentIdParams(
+        document_id=document_id,
+        type=WatermarkType.TEXT,
+        text="Confidential - Do Not Distribute",
+        json_response=True
+    )
+    response = cast(PDFGateDocument, client.watermark_pdf(watermark_pdf_params))
+
+    assert isinstance(response, dict)
+    assert "id" in response and response.get("id") != document_id
+    assert "type" in response and response.get("type") == "watermarked"
+    assert "derived_from" in response and response.get("derived_from") == document_id
+    assert "status" in response and response.get("status") == "completed"
+
+
+@pytest.mark.dev
+def test_watermark_pdf_with_image_by_file(client: PDFGate) -> None:
+    pass  # To be implemented

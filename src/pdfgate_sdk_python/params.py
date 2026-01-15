@@ -169,3 +169,34 @@ class CompressPDFByFileParams(CompressPDFBaseParams):
     file: Optional[PDFFileParam] = None
 
 CompressPDFParams = Union[CompressPDFByDocumentIdParams, CompressPDFByFileParams]
+
+class WatermarkType(Enum):
+    TEXT = "text"
+    IMAGE = "image"
+
+@dataclass
+class WatermarkPDFBaseParams:
+    type: WatermarkType
+    text: Optional[str] = None
+    font: Optional[PdfStandardFont] = None
+    font_size: Optional[int] = None
+    font_color: Optional[str] = None
+    opacity: Optional[float] = None
+    x_position: Optional[int] = None
+    y_position: Optional[int] = None
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+    rotate: Optional[float] = None
+    json_response: Optional[bool] = False
+    pre_signed_url_expires_in: Optional[int] = None
+    metadata: Optional[Any] = None
+
+@dataclass
+class WatermarkPDFByDocumentIdParams(WatermarkPDFBaseParams):
+    document_id: Optional[str] = None
+
+@dataclass
+class WatermarkPDFByFileParams(WatermarkPDFBaseParams):
+    file: Optional[PDFFileParam] = None
+
+WatermarkPDFParams = Union[WatermarkPDFByDocumentIdParams, WatermarkPDFByFileParams]
