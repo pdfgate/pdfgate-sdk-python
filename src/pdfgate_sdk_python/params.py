@@ -152,3 +152,20 @@ class ProtectPDFByFileParams(ProtectPDFBaseParams):
     file: Optional[PDFFileParam] = None
 
 ProtectPDFParams = Union[ProtectPDFByDocumentIdParams, ProtectPDFByFileParams]
+
+@dataclass
+class CompressPDFBaseParams:
+    linearize: Optional[bool] = None
+    json_response: Optional[bool] = False
+    pre_signed_url_expires_in: Optional[int] = None
+    metadata: Optional[Any] = None
+
+@dataclass
+class CompressPDFByDocumentIdParams(CompressPDFBaseParams):
+    document_id: Optional[str] = None
+
+@dataclass
+class CompressPDFByFileParams(CompressPDFBaseParams):
+    file: Optional[PDFFileParam] = None
+
+CompressPDFParams = Union[CompressPDFByDocumentIdParams, CompressPDFByFileParams]
