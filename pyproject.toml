@@ -43,6 +43,7 @@ dependencies = [
   "responses",
   "mypy>=1.0.0",
   "ruff",
+  "pypdf",
 ]
 
 [tool.hatch.envs.dev.scripts]
