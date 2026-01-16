@@ -98,15 +98,33 @@ class PDFGate:
                 there is a network/connection error. The error includes status code
                 and message when available.
         """
-        headers = self.get_base_headers()
+        request = self.request_builder.build_get_document(params)
+        response = self.sync_client.try_make_request(request)
+        json_response = response.json()
 
-        params_dict: dict[str, int] = {}
-        if params.pre_signed_url_expires_in is not None:
-            params_dict["preSignedUrlExpiresIn"] = params.pre_signed_url_expires_in
-        
-        url = URLBuilder.get_document_url(self.domain, params.document_id)
-        request = requests.Request("GET", url=url, headers=headers, params=params_dict).prepare()
-        response = try_make_request(request)
+        return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
+
+    async def get_document_async(self, params: GetDocumentParams) -> PDFGateDocument:
+        """Retrieve a document from the PDFGate API.
+
+        Sends a GET request to the `/document/{document_id}` endpoint. If
+        `params.pre_signed_url_expires_in` is provided it will be sent as the
+        `preSignedUrlExpiresIn` query parameter.
+
+        Args:
+            params:
+                Parameters for the request, provided as a `GetDocumentParams` instance.
+
+        Returns:
+            A `PDFGateDocument` parsed from the JSON response.
+
+        Raises:
+            PDFGateError: If the HTTP request fails (including non-2xx responses) or if
+                there is a network/connection error. The error includes status code
+                and message when available.
+        """
+        request = self.request_builder.build_get_document(params)
+        response = await self.async_client.try_make_request_async(request)
         json_response = response.json()
 
         return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))

@@ -54,7 +54,7 @@ lint = "ruff check ."
 [tool.hatch.envs.test]
 dependencies = [
   "pytest",
-  "pytest-asyncio", 
+  "pytest-asyncio",
   "pytest-cov",
   "responses",
   "cryptography>=3.1",

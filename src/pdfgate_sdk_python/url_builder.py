@@ -5,8 +5,7 @@ class URLBuilder:
     def __init__(self, domain: str):
         self.domain = domain
 
-    @staticmethod
-    def get_document_url(domain: str, document_id: str) -> str:
+    def get_document_url(self, document_id: str) -> str:
         """Build the URL for accessing a document.
 
         Args:
@@ -18,7 +17,7 @@ class URLBuilder:
         Returns:
             Full URL to access the document.
         """
-        return f"{domain}/document/{document_id}"
+        return f"{self.domain}/document/{document_id}"
 
     def get_file_url(self, document_id: str) -> str:
         """Build the URL for downloading a document.

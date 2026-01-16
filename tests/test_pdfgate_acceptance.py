@@ -95,8 +95,17 @@ def test_get_document(client: PDFGate, document_id: str) -> None:
     document_response = client.get_document(GetDocumentParams(document_id=document_id))
 
     assert isinstance(document_response, dict)
-    assert "id" in document_response
-    assert "status" in document_response
+    assert "id" in document_response and document_response["id"] == document_id
+    assert "status" in document_response and document_response["status"] == "completed"
+    assert "created_at" in document_response
+
+@pytest.mark.asyncio
+async def test_get_document_async(client: PDFGate, document_id: str) -> None:
+    document_response = await client.get_document_async(GetDocumentParams(document_id=document_id))
+
+    assert isinstance(document_response, dict)
+    assert "id" in document_response and document_response["id"] == document_id
+    assert "status" in document_response and document_response["status"] == "completed"
     assert "created_at" in document_response
 
 def test_flatten_pdf_by_document_id(client: PDFGate, document_id: str) -> None:

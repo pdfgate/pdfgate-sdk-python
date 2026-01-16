@@ -1,8 +1,10 @@
 
+from typing import Any
 import httpx
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 from pdfgate_sdk_python.errors import PDFGateError
-from pdfgate_sdk_python.pdfgate_async import URLBuilder
+from pdfgate_sdk_python.params import GetDocumentParams
+from pdfgate_sdk_python.url_builder import URLBuilder
 
 
 def get_domain_from_api_key(api_key: str) -> str:
@@ -37,8 +39,21 @@ class RequestBuilder:
             "Authorization": f"Bearer {self.api_key}"
         }
 
+    def _get_request(self, url: str, params: dict[str, Any] = {}) -> httpx.Request:
+        return httpx.Request("GET", url=url, headers=self.get_headers(), params=params)
+
     def build_get_file(self, document_id: str) -> httpx.Request:
         url = self.url_builder.get_file_url(document_id)
-        request = httpx.Request("GET", url=url, headers=self.get_headers())
+        request = self._get_request(url)
+
+        return request
+
+    def build_get_document(self, params: GetDocumentParams) -> httpx.Request:
+        params_dict: dict[str, int] = {}
+        if params.pre_signed_url_expires_in is not None:
+            params_dict["preSignedUrlExpiresIn"] = params.pre_signed_url_expires_in
+
+        url = self.url_builder.get_document_url(params.document_id)
+        request = self._get_request(url, params_dict)
 
         return request
