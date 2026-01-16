@@ -69,7 +69,7 @@ def test_generate_pdf_with_json_response(client: PDFGate) -> None:
 
     assert isinstance(document_response, dict)
     assert "id" in document_response
-    assert "status" in document_response
+    assert "status" in document_response and document_response["status"] == "completed"
     assert "created_at" in document_response
 
 def test_generate_pdf_with_binary_response(client: PDFGate) -> None:
