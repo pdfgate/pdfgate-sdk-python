@@ -2,9 +2,11 @@ from datetime import datetime
 import random
 from typing import TypedDict
 import uuid
+import httpx
 import pytest
 import requests
 import responses
+import respx
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN
 from pdfgate_sdk_python.errors import PDFGateError, ParamsValidationError
 from pdfgate_sdk_python.params import FlattenPDFBinaryParams, FlattenPDFDocumentParams, GeneratePDFParams, GetDocumentParams, PDFFileParam
@@ -32,6 +34,10 @@ class FlattenedDocumentResponse(DocumentResponse):
 @pytest.fixture
 def api_key() -> str:
     return f"live_{str(uuid.uuid4())}"
+
+@pytest.fixture(scope="module")
+def url_builder() -> URLBuilder:
+    return URLBuilder(PRODUCTION_API_DOMAIN)
 
 @pytest.fixture
 def document_id() -> str:
@@ -86,7 +92,6 @@ def test_try_make_request_raises_when_request_returns_an_http_error() -> None:
     with pytest.raises(PDFGateError, match=error_message_pattern):
         try_make_request(request)
 
-
 @pytest.mark.parametrize("body, match_pattern", [
     (exceptions.Timeout("Request timed out"), r"Request failed.*Request timed out"),
     (exceptions.ConnectionError("Connection failed"), r"Request failed.*Connection failed"),
@@ -100,14 +105,11 @@ def test_try_make_request_raises_when_request_fails(body: Exception, match_patte
     with pytest.raises(PDFGateError, match=match_pattern):
         try_make_request(request)
 
-@responses.activate
-def test_get_document_returns_document(client: PDFGate, document_response: DocumentResponse) -> None:
-    responses.add(
-        responses.GET,
-        URLBuilder.get_document_url(PRODUCTION_API_DOMAIN, document_response["id"]),
-        json=document_response,
-        status=200
-    )
+def test_get_document_returns_document(client: PDFGate, url_builder: URLBuilder, document_response: DocumentResponse, respx_mock: respx.MockRouter) -> None:
+    url = url_builder.get_document_url(document_response["id"])
+    response_json = dict(document_response)
+    route = respx_mock.get(url)
+    route.mock(return_value=httpx.Response(200, json=response_json))
     params = GetDocumentParams(document_id=document_response["id"])
 
     document = client.get_document(params)

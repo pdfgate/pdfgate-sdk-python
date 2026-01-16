@@ -42,6 +42,7 @@ path = "src/pdfgate_sdk_python/__about__.py"
 dependencies = [
   "pytest",
   "responses",
+  "respx", 
   "mypy>=1.0.0",
   "ruff",
   "pypdf",
@@ -57,6 +58,7 @@ dependencies = [
   "pytest-asyncio",
   "pytest-cov",
   "responses",
+  "respx",
   "cryptography>=3.1",
   "pypdf"
 ]
