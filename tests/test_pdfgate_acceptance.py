@@ -1,6 +1,7 @@
 
 import io
 import os
+import pathlib
 import sys
 from typing import Any, TypedDict, cast
 import uuid
@@ -200,8 +201,9 @@ def test_compress_pdf_by_document_id_with_json_response(client:PDFGate, document
     assert "type" in response and response.get("type")  == "compressed"
     assert "size" in response and cast(int, response.get("size", sys.maxsize))  <  document_id_with_size["size"]
 
-def test_compress_pdf_by_file_with_file_response(client:PDFGate, pdf_file: bytes) -> None:
-    with open("input.pdf", "wb") as f:
+def test_compress_pdf_by_file_with_file_response(client:PDFGate, pdf_file: bytes, tmp_path: pathlib.Path) -> None:
+    input_pdf = tmp_path / "input.pdf"
+    with open(input_pdf, "wb") as f:
         f.write(pdf_file)
 
     compress_pdf_params = CompressPDFByFileParams(
