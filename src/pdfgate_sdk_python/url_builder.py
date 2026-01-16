@@ -33,15 +33,14 @@ class URLBuilder:
         """
         return f"{self.domain}/file/{document_id}"
 
-    @staticmethod
-    def generate_pdf_url(domain: str) -> str:
+    def generate_pdf_url(self) -> str:
         """Build the URL for generating a PDF.
 
         Args:
             domain:
                 Base API domain.
         """
-        return f"{domain}/v1/generate/pdf"
+        return f"{self.domain}/v1/generate/pdf"
 
     @staticmethod
     def flatten_pdf_url(domain: str) -> str:

@@ -125,33 +125,29 @@ def test_generate_pdf_raises_when_neither_html_nor_url_provided(client: PDFGate)
     with pytest.raises(ParamsValidationError):
         client.generate_pdf(params)
 
-@responses.activate
-def test_generate_pdf_returns_json_when_json_reponse_true(document_response: DocumentResponse, client: PDFGate) -> None:
-    responses.add(
-        responses.POST,
-        URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
-        json=document_response,
-        status=201
-    )
+def test_generate_pdf_returns_json_when_json_reponse_true(document_response: DocumentResponse, client: PDFGate, url_builder: URLBuilder, respx_mock: respx.MockRouter) -> None:
+    url = url_builder.generate_pdf_url()
+    route = respx_mock.post(url)
+    route.mock(return_value=httpx.Response(201, json=document_response))
     params = GeneratePDFParams(
         html="<h1>Test</h1>",
         json_response=True
     )
 
     response = client.generate_pdf(params)
+
     assert isinstance(response, dict)
     assert response.get("id") == document_response["id"]
     assert response.get("status") == document_response["status"]
     assert response.get("created_at") == document_response["createdAt"]
 
-@responses.activate
-def test_generate_pdf_returns_bytes_when_json_reponse_false(client: PDFGate) -> None:
-    responses.add(
-        responses.POST,
-        URLBuilder.generate_pdf_url(PRODUCTION_API_DOMAIN),
-        body=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",
-        content_type="application/octet-stream",
-        status=201
+def test_generate_pdf_returns_bytes_when_json_reponse_false(client: PDFGate, url_builder: URLBuilder, respx_mock: respx.MockRouter) -> None:
+    url = url_builder.generate_pdf_url()
+    route = respx_mock.post(url)
+    route.mock(return_value=httpx.Response(201, content=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW", headers={"Content-Type": "application/octet-stream"}))
+    params = GeneratePDFParams(
+        html="<h1>Test</h1>",
+        json_response=False
     )
     params = GeneratePDFParams(
         html="<h1>Test</h1>",
@@ -159,7 +155,9 @@ def test_generate_pdf_returns_bytes_when_json_reponse_false(client: PDFGate) -> 
     )
 
     response = client.generate_pdf(params)
+
     assert isinstance(response, bytes)
+    assert response.startswith(b"%PDF-1.4")
 
 @responses.activate
 def test_flatten_pdf_by_document_id_returns_json_when_json_reponse_true(client: PDFGate, flattened_document_response: FlattenedDocumentResponse, document_id: str) -> None:

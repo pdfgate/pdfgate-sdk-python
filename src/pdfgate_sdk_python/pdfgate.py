@@ -160,17 +160,26 @@ class PDFGate:
         if not params.html and not params.url:
             raise ParamsValidationError("Either the 'html' or 'url' parameters must be provided to generate a PDF.")
 
-        headers = self.get_base_headers()
-        url = URLBuilder.generate_pdf_url(self.domain)
-        params_dict = asdict(params)
-        params_without_nulls: dict[str, Any] = {}
-        for k, v in params_dict.items():
-            if v is not None:
-                params_without_nulls[snake_to_camel(k)] = v
+        request = self.request_builder.build_generate_pdf(params)
+        response = self.sync_client.try_make_request(request)
 
-        request = requests.Request("POST", url=url, headers=headers, json=params_without_nulls).prepare()
-        timeout = int(timedelta(minutes=15).total_seconds())
-        response = try_make_request(request, timeout=timeout)
+        if params.json_response:
+            json_response = response.json()
+            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
+
+        return response.content
+
+    async def generate_pdf_async(self, params: GeneratePDFParams) -> Union[bytes, PDFGateDocument]:
+        """Generate a PDF document.
+
+        Depending on the `json_response` flag in `params`, this method either
+        returns the raw PDF bytes or a `PDFGateDocument` instance.
+        """
+        if not params.html and not params.url:
+            raise ParamsValidationError("Either the 'html' or 'url' parameters must be provided to generate a PDF.")
+
+        request = self.request_builder.build_generate_pdf(params)
+        response = await self.async_client.try_make_request_async(request)
 
         if params.json_response:
             json_response = response.json()

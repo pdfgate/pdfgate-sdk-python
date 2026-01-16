@@ -55,16 +55,20 @@ class ClickSelectorChainSetup:
   chains: Optional[list["ClickSelectorChain"]] = None
 
 @dataclass
-class GetDocumentParams:
+class PDFGateParams:
+    pass
+
+@dataclass
+class GetDocumentParams(PDFGateParams):
     document_id: str
     pre_signed_url_expires_in: Optional[int] = None
 
 @dataclass
-class GetFileParams:
+class GetFileParams(PDFGateParams):
     document_id: str
 
 @dataclass
-class GeneratePDFParams:
+class GeneratePDFParams(PDFGateParams):
     html: Optional[str] = None
     url: Optional[str] = None
     json_response: Optional[bool] = False
@@ -96,7 +100,7 @@ class GeneratePDFParams:
     user_agent: Optional[str] = None
 
 @dataclass
-class FlattenPDFBaseParams:
+class FlattenPDFBaseParams(PDFGateParams):
    json_response: Optional[bool] = False
    pre_signed_url_expires_in: Optional[int] = None
    metadata: Optional[Any] = None
@@ -117,11 +121,11 @@ class FlattenPDFDocumentParams(FlattenPDFBaseParams):
 FlattenPDFParams = Union[FlattenPDFBinaryParams, FlattenPDFDocumentParams]
 
 @dataclass
-class ExtractPDFFormDataByDocumentIdParams:
+class ExtractPDFFormDataByDocumentIdParams(PDFGateParams):
    document_id: str
 
 @dataclass
-class ExtractPDFFormDataByFileParams:
+class ExtractPDFFormDataByFileParams(PDFGateParams):
    file: PDFFileParam
 
 ExtractPDFFormDataParams = Union[ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams]
@@ -131,7 +135,7 @@ class EncryptionAlgorithm(Enum):
    AES_128 = "AES128"
 
 @dataclass
-class ProtectPDFBaseParams:
+class ProtectPDFBaseParams(PDFGateParams):
     algorithm: Optional[EncryptionAlgorithm] = None
     user_password: Optional[str] = None
     owner_password: Optional[str] = None
@@ -154,7 +158,7 @@ class ProtectPDFByFileParams(ProtectPDFBaseParams):
 ProtectPDFParams = Union[ProtectPDFByDocumentIdParams, ProtectPDFByFileParams]
 
 @dataclass
-class CompressPDFBaseParams:
+class CompressPDFBaseParams(PDFGateParams):
     linearize: Optional[bool] = None
     json_response: Optional[bool] = False
     pre_signed_url_expires_in: Optional[int] = None

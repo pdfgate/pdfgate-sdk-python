@@ -72,6 +72,16 @@ def test_generate_pdf_with_json_response(client: PDFGate) -> None:
     assert "status" in document_response and document_response["status"] == "completed"
     assert "created_at" in document_response
 
+@pytest.mark.asyncio
+async def test_generate_pdf_async_with_json_response(client: PDFGate) -> None:
+    generate_pdf_params = GeneratePDFParams(html="<html><body><h1>Hello, PDFGate!</h1></body></html>", json_response=True)
+    document_response = await client.generate_pdf_async(generate_pdf_params)
+
+    assert isinstance(document_response, dict)
+    assert "id" in document_response
+    assert "status" in document_response and document_response["status"] == "completed"
+    assert "created_at" in document_response
+
 def test_generate_pdf_with_binary_response(client: PDFGate) -> None:
     generate_pdf_params = GeneratePDFParams(html="<html><body><h1>Hello, PDFGate!</h1></body></html>", json_response=False)
     file_content = cast(bytes, client.generate_pdf(generate_pdf_params))

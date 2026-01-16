@@ -3,6 +3,7 @@ from typing import NoReturn
 import httpx
 
 from pdfgate_sdk_python.errors import PDFGateError
+from pdfgate_sdk_python.request_builder import PDFGateRequest
 
 
 class PDFGateHTTPClientBase:
@@ -38,10 +39,10 @@ class PDFGateHTTPClientSync(PDFGateHTTPClientBase):
     def __init__(self, api_key: str):
         super().__init__(api_key=api_key)
     
-    def try_make_request(self, request: httpx.Request) -> httpx.Response:
+    def try_make_request(self, request: PDFGateRequest) -> httpx.Response:
         try:
-            with httpx.Client() as client:
-                response = client.send(request)
+            with httpx.Client(timeout=request.timeout) as client:
+                response = client.send(request.request)
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
             self.raise_error_from_http_status_error(e)
@@ -55,10 +56,10 @@ class PDFGateHTTPClientAsync(PDFGateHTTPClientBase):
     def __init__(self, api_key: str):
         super().__init__(api_key=api_key)
     
-    async def try_make_request_async(self, request: httpx.Request) -> httpx.Response:
+    async def try_make_request_async(self, request: PDFGateRequest) -> httpx.Response:
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.send(request)
+            async with httpx.AsyncClient(timeout=request.timeout) as client:
+                response = await client.send(request.request)
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
             self.raise_error_from_http_status_error(e)

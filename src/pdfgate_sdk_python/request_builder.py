@@ -1,9 +1,12 @@
 
+from dataclasses import asdict, dataclass
+from datetime import timedelta
 from typing import Any
 import httpx
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
+from pdfgate_sdk_python.dict_keys_converter import snake_to_camel
 from pdfgate_sdk_python.errors import PDFGateError
-from pdfgate_sdk_python.params import GetDocumentParams
+from pdfgate_sdk_python.params import GeneratePDFParams, GetDocumentParams, PDFGateParams
 from pdfgate_sdk_python.url_builder import URLBuilder
 
 
@@ -27,6 +30,20 @@ def get_domain_from_api_key(api_key: str) -> str:
     else:
         raise PDFGateError("Invalid API key format. Expected to start with 'live_' or 'test_'.")
 
+def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
+    params_dict = asdict(instance)
+    params_without_nulls: dict[str, Any] = {}
+    for k, v in params_dict.items():
+        if v is not None:
+            params_without_nulls[snake_to_camel(k)] = v
+
+    return params_without_nulls
+
+@dataclass
+class PDFGateRequest:
+    request: httpx.Request
+    timeout: int = int(timedelta(seconds=60).total_seconds())
+
 class RequestBuilder:
 
     def __init__(self, api_key: str):
@@ -42,13 +59,16 @@ class RequestBuilder:
     def _get_request(self, url: str, params: dict[str, Any] = {}) -> httpx.Request:
         return httpx.Request("GET", url=url, headers=self.get_headers(), params=params)
 
-    def build_get_file(self, document_id: str) -> httpx.Request:
+    def _post_request(self, url: str, json: dict[str, Any]) -> httpx.Request:
+        return httpx.Request("POST", url=url, headers=self.get_headers(), json=json)
+
+    def build_get_file(self, document_id: str) -> PDFGateRequest:
         url = self.url_builder.get_file_url(document_id)
         request = self._get_request(url)
 
-        return request
+        return PDFGateRequest(request=request)
 
-    def build_get_document(self, params: GetDocumentParams) -> httpx.Request:
+    def build_get_document(self, params: GetDocumentParams) -> PDFGateRequest:
         params_dict: dict[str, int] = {}
         if params.pre_signed_url_expires_in is not None:
             params_dict["preSignedUrlExpiresIn"] = params.pre_signed_url_expires_in
@@ -56,4 +76,12 @@ class RequestBuilder:
         url = self.url_builder.get_document_url(params.document_id)
         request = self._get_request(url, params_dict)
 
-        return request
+        return PDFGateRequest(request=request)
+
+    def build_generate_pdf(self, params: GeneratePDFParams) -> PDFGateRequest:
+        url = self.url_builder.generate_pdf_url()
+        params_without_nulls = pdfgate_params_to_params_dict(params)
+        request = self._post_request(url, json=params_without_nulls)
+        timeout = int(timedelta(minutes=15).total_seconds())
+
+        return PDFGateRequest(request=request, timeout=timeout)
