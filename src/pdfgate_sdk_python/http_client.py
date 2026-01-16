@@ -39,7 +39,6 @@ class PDFGateHTTPClientSync(PDFGateHTTPClientBase):
         super().__init__(api_key=api_key)
     
     def try_make_request(self, request: httpx.Request) -> httpx.Response:
-        response: httpx.Response
         try:
             with httpx.Client() as client:
                 response = client.send(request)
@@ -57,7 +56,6 @@ class PDFGateHTTPClientAsync(PDFGateHTTPClientBase):
         super().__init__(api_key=api_key)
     
     async def try_make_request_async(self, request: httpx.Request) -> httpx.Response:
-        response: httpx.Response
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.send(request)
