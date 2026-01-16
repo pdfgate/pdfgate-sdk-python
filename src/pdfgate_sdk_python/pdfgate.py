@@ -160,9 +160,6 @@ class PDFGate:
         if not params.html and not params.url:
             raise ParamsValidationError("Either the 'html' or 'url' parameters must be provided to generate a PDF.")
 
-        if params.html and params.url:
-            raise ParamsValidationError("Both 'html' and 'url' parameters cannot be provided at the same time.")
-
         headers = self.get_base_headers()
         url = URLBuilder.generate_pdf_url(self.domain)
         params_dict = asdict(params)
