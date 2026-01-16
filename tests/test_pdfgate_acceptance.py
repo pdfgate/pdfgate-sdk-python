@@ -84,6 +84,13 @@ def test_get_file(client: PDFGate, document_id: str) -> None:
     assert isinstance(file_content, bytes)
     assert file_content.startswith(b'%PDF')
 
+@pytest.mark.asyncio
+async def test_get_file_async(client: PDFGate, document_id: str) -> None:
+    file_content = await client.get_file_async(GetFileParams(document_id=document_id))
+
+    assert isinstance(file_content, bytes)
+    assert file_content.startswith(b'%PDF')
+
 def test_get_document(client: PDFGate, document_id: str) -> None:
     document_response = client.get_document(GetDocumentParams(document_id=document_id))
 

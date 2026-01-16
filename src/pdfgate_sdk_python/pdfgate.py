@@ -10,114 +10,13 @@ from typing import Any, Union, cast
 import requests
 
 from pdfgate_sdk_python.dict_keys_converter import convert_camel_keys_to_snake, snake_to_camel
+from pdfgate_sdk_python.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
+from pdfgate_sdk_python.request_builder import RequestBuilder, get_domain_from_api_key
+from pdfgate_sdk_python.url_builder import URLBuilder
 
 from .errors import PDFGateError, ParamsValidationError
 from .params import CompressPDFByDocumentIdParams, CompressPDFParams, ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataParams, FlattenPDFParams, GeneratePDFParams, GetDocumentParams, GetFileParams, ProtectPDFByDocumentIdParams, ProtectPDFParams
 from .responses import PDFGateDocument
-from .constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
-
-def get_domain_from_api_key(api_key: str) -> str:
-    """Return the API domain corresponding to an API key.
-
-    Args:
-        api_key:
-            API key string that should start with 'live_' or 'test_'.
-
-    Returns:
-        The domain (URL) for the API (production or sandbox).
-
-    Raises:
-        PDFGateError: If the API key format is invalid.
-    """
-    if api_key.startswith("live_"):
-        return PRODUCTION_API_DOMAIN
-    elif api_key.startswith("test_"):
-        return SANDBOX_API_DOMAIN
-    else:
-        raise PDFGateError("Invalid API key format. Expected to start with 'live_' or 'test_'.")
-
-class URLBuilder:
-    """Helper class to build URLs for the PDFGate API."""
-
-    @staticmethod
-    def get_document_url(domain: str, document_id: str) -> str:
-        """Build the URL for accessing a document.
-
-        Args:
-            domain:
-                Base API domain.
-            document_id:
-                ID of the document.
-
-        Returns:
-            Full URL to access the document.
-        """
-        return f"{domain}/document/{document_id}"
-
-    @staticmethod
-    def get_file_url(domain: str, document_id: str) -> str:
-        """Build the URL for downloading a document.
-
-        Args:
-            domain:
-                Base API domain.
-            document_id:
-                ID of the document.
-
-        Returns:
-            Full URL to download the document.
-        """
-        return f"{domain}/file/{document_id}"
-
-    @staticmethod
-    def generate_pdf_url(domain: str) -> str:
-        """Build the URL for generating a PDF.
-
-        Args:
-            domain:
-                Base API domain.
-        """
-        return f"{domain}/v1/generate/pdf"
-
-    @staticmethod
-    def flatten_pdf_url(domain: str) -> str:
-        """Build the URL for flattening a PDF.
-
-        Args:
-            domain:
-                Base API domain.
-        """
-        return f"{domain}/forms/flatten"
-
-    @staticmethod
-    def extract_pdf_form_data_url(domain: str) -> str:
-        """Build the URL for extracting PDF form data.
-
-        Args:
-            domain:
-                Base API domain.
-        """
-        return f"{domain}/forms/extract-data"
-
-    @staticmethod
-    def protect_pdf_url(domain: str) -> str:
-        """Build the URL for encrypting a PDF.
-
-        Args:
-            domain:
-                Base API domain.
-        """
-        return f"{domain}/protect/pdf"
-
-    @staticmethod
-    def compress_pdf_url(domain: str) -> str:
-        """Build the URL for compressing a PDF.
-
-        Args:
-            domain:
-                Base API domain.
-        """
-        return f"{domain}/compress/pdf"
 
 def try_make_request(request: requests.PreparedRequest, timeout: int = 60) -> requests.Response:
     try:
@@ -146,7 +45,6 @@ def try_make_request(request: requests.PreparedRequest, timeout: int = 60) -> re
 
     return response
 
-
 class PDFGate:
     """Client for the PDFGate API.
 
@@ -165,8 +63,11 @@ class PDFGate:
         Raises:
             PDFGateError: If the API key is invalid.
         """
-        self.api_key = api_key
         self.domain = get_domain_from_api_key(api_key)
+        self.api_key = api_key
+        self.request_builder = RequestBuilder(api_key=api_key)
+        self.sync_client = PDFGateHTTPClientSync(api_key=api_key)
+        self.async_client = PDFGateHTTPClientAsync(api_key=api_key)
 
     def get_base_headers(self) -> dict[str, str]:
         """Return HTTP headers for API requests.
@@ -216,11 +117,19 @@ class PDFGate:
         Returns:
             The raw bytes of the file.
         """
-        headers = self.get_base_headers()
+        request = self.request_builder.build_get_file(params.document_id)
+        response = self.sync_client.try_make_request(request=request)
 
-        url = URLBuilder.get_file_url(self.domain, params.document_id)
-        request = requests.Request("GET", url=url, headers=headers).prepare()
-        response = try_make_request(request)
+        return response.content
+
+    async def get_file_async(self, params: GetFileParams) -> bytes:
+        """Download a raw PDF file by its document ID.
+
+        Returns:
+            The raw bytes of the file.
+        """
+        request = self.request_builder.build_get_file(params.document_id)
+        response = await self.async_client.try_make_request_async(request=request)
 
         return response.content
 
