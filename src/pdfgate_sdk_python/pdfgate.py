@@ -4,13 +4,12 @@ Client for interacting with the PDFGate API.
 """
 
 from typing import Any, Union, cast
-import requests
 
 from pdfgate_sdk_python.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
 from pdfgate_sdk_python.request_builder import RequestBuilder, get_domain_from_api_key
 from pdfgate_sdk_python.response_builder import ResponseBuilder
 
-from .errors import PDFGateError, ParamsValidationError
+from .errors import ParamsValidationError
 from .params import (
     CompressPDFParams,
     ExtractPDFFormDataParams,
@@ -21,38 +20,6 @@ from .params import (
     ProtectPDFParams,
 )
 from .responses import PDFGateDocument
-
-
-def try_make_request(
-    request: requests.PreparedRequest, timeout: int = 60
-) -> requests.Response:
-    try:
-        with requests.Session() as session:
-            response = session.send(request, timeout=timeout)
-
-        response.raise_for_status()
-    except requests.HTTPError as e:
-        if e.response is None:
-            raise PDFGateError(f"HTTP Error without response: {e}") from e
-
-        status_code = e.response.status_code
-        content_type = e.response.headers.get("Content-Type", "")
-        message = e.response.text
-        if "application/json" in content_type:
-            try:
-                error_info = e.response.json()
-                message = error_info.get("message", e.response.text)
-            except ValueError:
-                message = e.response.text
-
-        raise PDFGateError(
-            f"HTTP Error: status {status_code} - message: {message}"
-        ) from e
-    except requests.RequestException as e:
-        # Timeout, ConnectionError, etc.
-        raise PDFGateError(f"Request failed: {e}") from e
-
-    return response
 
 
 class PDFGate:
