@@ -42,10 +42,11 @@ path = "src/pdfgate_sdk_python/__about__.py"
 dependencies = [
   "pytest",
   "responses",
-  "respx", 
+  "respx",
   "mypy>=1.0.0",
   "ruff",
   "pypdf",
+  "pre-commit"
 ]
 
 [tool.hatch.envs.dev.scripts]
