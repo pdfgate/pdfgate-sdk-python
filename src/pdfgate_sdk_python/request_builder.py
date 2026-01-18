@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass
 from datetime import timedelta
+from enum import Enum
 from typing import Any
 import httpx
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
@@ -13,6 +14,8 @@ from pdfgate_sdk_python.params import (
     GeneratePDFParams,
     GetDocumentParams,
     PDFGateParams,
+    ProtectPDFByDocumentIdParams,
+    ProtectPDFParams,
 )
 from pdfgate_sdk_python.url_builder import URLBuilder
 
@@ -45,7 +48,9 @@ def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
     params_without_nulls: dict[str, Any] = {}
     for k, v in params_dict.items():
         if v is not None:
-            params_without_nulls[snake_to_camel(k)] = v
+            params_without_nulls[snake_to_camel(k)] = (
+                v.value if isinstance(v, Enum) else v
+            )
 
     return params_without_nulls
 
@@ -128,3 +133,19 @@ class RequestBuilder:
             request = self._multipart_post_request(url, files={"file": params.file})
 
         return PDFGateRequest(request=request)
+
+    def build_protect_pdf(self, params: ProtectPDFParams) -> PDFGateRequest:
+        url = self.url_builder.protect_pdf_url()
+        params_without_nulls = pdfgate_params_to_params_dict(params)
+        if isinstance(params, ProtectPDFByDocumentIdParams):
+            request = self._multipart_post_request(url=url, data=params_without_nulls)
+        else:
+            file_param = {"file": params_without_nulls.pop("file", None)}
+            request = self._multipart_post_request(
+                url=url,
+                data=params_without_nulls,
+                files=file_param,
+            )
+        timeout = int(timedelta(minutes=3).total_seconds())
+
+        return PDFGateRequest(request=request, timeout=timeout)

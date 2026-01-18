@@ -59,15 +59,14 @@ class URLBuilder:
         """
         return f"{self.domain}/forms/extract-data"
 
-    @staticmethod
-    def protect_pdf_url(domain: str) -> str:
+    def protect_pdf_url(self) -> str:
         """Build the URL for encrypting a PDF.
 
         Args:
             domain:
                 Base API domain.
         """
-        return f"{domain}/protect/pdf"
+        return f"{self.domain}/protect/pdf"
 
     @staticmethod
     def compress_pdf_url(domain: str) -> str:
