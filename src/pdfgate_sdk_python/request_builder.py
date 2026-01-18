@@ -6,6 +6,8 @@ from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMA
 from pdfgate_sdk_python.dict_keys_converter import snake_to_camel
 from pdfgate_sdk_python.errors import PDFGateError
 from pdfgate_sdk_python.params import (
+    ExtractPDFFormDataByDocumentIdParams,
+    ExtractPDFFormDataParams,
     FlattenPDFBinaryParams,
     FlattenPDFParams,
     GeneratePDFParams,
@@ -70,7 +72,7 @@ class RequestBuilder:
         return httpx.Request("POST", url=url, headers=self.get_headers(), json=json)
 
     def _multipart_post_request(
-        self, url: str, data: dict[str, Any], files: dict[str, Any]
+        self, url: str, data: dict[str, Any] = {}, files: dict[str, Any] = {}
     ) -> httpx.Request:
         return httpx.Request(
             "POST", url=url, headers=self.get_headers(), data=data, files=files
@@ -114,3 +116,15 @@ class RequestBuilder:
         timeout = int(timedelta(minutes=3).total_seconds())
 
         return PDFGateRequest(request=request, timeout=timeout)
+
+    def build_extract_pdf_form_data(
+        self, params: ExtractPDFFormDataParams
+    ) -> PDFGateRequest:
+        url = self.url_builder.extract_pdf_form_data_url()
+        if isinstance(params, ExtractPDFFormDataByDocumentIdParams):
+            params_dict = {"documentId": params.document_id}
+            request = self._multipart_post_request(url, data=params_dict)
+        else:
+            request = self._multipart_post_request(url, files={"file": params.file})
+
+        return PDFGateRequest(request=request)

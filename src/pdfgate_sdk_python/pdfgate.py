@@ -22,7 +22,6 @@ from .errors import PDFGateError, ParamsValidationError
 from .params import (
     CompressPDFByDocumentIdParams,
     CompressPDFParams,
-    ExtractPDFFormDataByDocumentIdParams,
     ExtractPDFFormDataParams,
     FlattenPDFParams,
     GeneratePDFParams,
@@ -238,23 +237,20 @@ class PDFGate:
         return result
 
     def extract_pdf_form_data(self, params: ExtractPDFFormDataParams) -> Any:
-        headers = self.get_base_headers()
-        url = URLBuilder.extract_pdf_form_data_url(self.domain)
-        if isinstance(params, ExtractPDFFormDataByDocumentIdParams):
-            params_dict = {"documentId": params.document_id}
-            request = requests.Request(
-                "POST", url=url, headers=headers, data=params_dict
-            ).prepare()
-        else:
-            request = requests.Request(
-                "POST", url=url, headers=headers, files={"file": params.file}
-            ).prepare()
+        request = self.request_builder.build_extract_pdf_form_data(params)
+        response = self.sync_client.try_make_request(request)
+        result = ResponseBuilder.build_response(response, json=True)
 
-        response = try_make_request(request)
+        return result
 
-        json_response = response.json()
+    async def extract_pdf_form_data_async(
+        self, params: ExtractPDFFormDataParams
+    ) -> Any:
+        request = self.request_builder.build_extract_pdf_form_data(params)
+        response = await self.async_client.try_make_request_async(request)
+        result = ResponseBuilder.build_response(response, json=True)
 
-        return convert_camel_keys_to_snake(json_response)
+        return result
 
     def protect_pdf(self, params: ProtectPDFParams) -> Union[bytes, PDFGateDocument]:
         """Protect a PDF document by applying encryption.
