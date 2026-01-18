@@ -7,6 +7,8 @@ from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMA
 from pdfgate_sdk_python.dict_keys_converter import snake_to_camel
 from pdfgate_sdk_python.errors import PDFGateError
 from pdfgate_sdk_python.params import (
+    CompressPDFByDocumentIdParams,
+    CompressPDFParams,
     ExtractPDFFormDataByDocumentIdParams,
     ExtractPDFFormDataParams,
     FlattenPDFBinaryParams,
@@ -138,6 +140,22 @@ class RequestBuilder:
         url = self.url_builder.protect_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
         if isinstance(params, ProtectPDFByDocumentIdParams):
+            request = self._multipart_post_request(url=url, data=params_without_nulls)
+        else:
+            file_param = {"file": params_without_nulls.pop("file", None)}
+            request = self._multipart_post_request(
+                url=url,
+                data=params_without_nulls,
+                files=file_param,
+            )
+        timeout = int(timedelta(minutes=3).total_seconds())
+
+        return PDFGateRequest(request=request, timeout=timeout)
+
+    def build_compress_pdf(self, params: CompressPDFParams) -> PDFGateRequest:
+        url = self.url_builder.compress_pdf_url()
+        params_without_nulls = pdfgate_params_to_params_dict(params)
+        if isinstance(params, CompressPDFByDocumentIdParams):
             request = self._multipart_post_request(url=url, data=params_without_nulls)
         else:
             file_param = {"file": params_without_nulls.pop("file", None)}

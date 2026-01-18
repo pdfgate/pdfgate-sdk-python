@@ -3,24 +3,15 @@
 Client for interacting with the PDFGate API.
 """
 
-from dataclasses import asdict
-from datetime import timedelta
-from enum import Enum
 from typing import Any, Union, cast
 import requests
 
-from pdfgate_sdk_python.dict_keys_converter import (
-    convert_camel_keys_to_snake,
-    snake_to_camel,
-)
 from pdfgate_sdk_python.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
 from pdfgate_sdk_python.request_builder import RequestBuilder, get_domain_from_api_key
 from pdfgate_sdk_python.response_builder import ResponseBuilder
-from pdfgate_sdk_python.url_builder import URLBuilder
 
 from .errors import PDFGateError, ParamsValidationError
 from .params import (
-    CompressPDFByDocumentIdParams,
     CompressPDFParams,
     ExtractPDFFormDataParams,
     FlattenPDFParams,
@@ -291,36 +282,18 @@ class PDFGate:
 
     def compress_pdf(self, params: CompressPDFParams) -> Union[bytes, PDFGateDocument]:
         """Compress a PDF document to reduce its size without changing its visual content."""
-        headers = self.get_base_headers()
-        url = URLBuilder.compress_pdf_url(self.domain)
+        request = self.request_builder.build_compress_pdf(params)
+        response = self.sync_client.try_make_request(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
 
-        params_dict = asdict(params)
-        params_without_nulls: dict[str, Any] = {}
-        for k, v in params_dict.items():
-            if v is not None:
-                params_without_nulls[snake_to_camel(k)] = (
-                    v.value if isinstance(v, Enum) else v
-                )
+        return result
 
-        if isinstance(params, CompressPDFByDocumentIdParams):
-            request = requests.Request(
-                "POST", url=url, headers=headers, data=params_without_nulls
-            ).prepare()
-        else:
-            file_param = {"file": params_without_nulls.pop("file", None)}
-            request = requests.Request(
-                "POST",
-                url=url,
-                headers=headers,
-                data=params_without_nulls,
-                files=file_param,
-            ).prepare()
+    async def compress_pdf_async(
+        self, params: CompressPDFParams
+    ) -> Union[bytes, PDFGateDocument]:
+        """Compress a PDF document to reduce its size without changing its visual content."""
+        request = self.request_builder.build_compress_pdf(params)
+        response = await self.async_client.try_make_request_async(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
 
-        timeout = int(timedelta(minutes=3).total_seconds())
-        response = try_make_request(request, timeout=timeout)
-
-        if params.json_response:
-            json_response = response.json()
-            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
-
-        return response.content
+        return result

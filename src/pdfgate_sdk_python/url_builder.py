@@ -68,12 +68,11 @@ class URLBuilder:
         """
         return f"{self.domain}/protect/pdf"
 
-    @staticmethod
-    def compress_pdf_url(domain: str) -> str:
+    def compress_pdf_url(self) -> str:
         """Build the URL for compressing a PDF.
 
         Args:
             domain:
                 Base API domain.
         """
-        return f"{domain}/compress/pdf"
+        return f"{self.domain}/compress/pdf"
