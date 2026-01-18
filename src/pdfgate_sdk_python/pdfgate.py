@@ -9,17 +9,34 @@ from enum import Enum
 from typing import Any, Union, cast
 import requests
 
-from pdfgate_sdk_python.dict_keys_converter import convert_camel_keys_to_snake, snake_to_camel
+from pdfgate_sdk_python.dict_keys_converter import (
+    convert_camel_keys_to_snake,
+    snake_to_camel,
+)
 from pdfgate_sdk_python.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
 from pdfgate_sdk_python.request_builder import RequestBuilder, get_domain_from_api_key
 from pdfgate_sdk_python.response_builder import ResponseBuilder
 from pdfgate_sdk_python.url_builder import URLBuilder
 
 from .errors import PDFGateError, ParamsValidationError
-from .params import CompressPDFByDocumentIdParams, CompressPDFParams, ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataParams, FlattenPDFParams, GeneratePDFParams, GetDocumentParams, GetFileParams, ProtectPDFByDocumentIdParams, ProtectPDFParams
+from .params import (
+    CompressPDFByDocumentIdParams,
+    CompressPDFParams,
+    ExtractPDFFormDataByDocumentIdParams,
+    ExtractPDFFormDataParams,
+    FlattenPDFParams,
+    GeneratePDFParams,
+    GetDocumentParams,
+    GetFileParams,
+    ProtectPDFByDocumentIdParams,
+    ProtectPDFParams,
+)
 from .responses import PDFGateDocument
 
-def try_make_request(request: requests.PreparedRequest, timeout: int = 60) -> requests.Response:
+
+def try_make_request(
+    request: requests.PreparedRequest, timeout: int = 60
+) -> requests.Response:
     try:
         with requests.Session() as session:
             response = session.send(request, timeout=timeout)
@@ -28,23 +45,26 @@ def try_make_request(request: requests.PreparedRequest, timeout: int = 60) -> re
     except requests.HTTPError as e:
         if e.response is None:
             raise PDFGateError(f"HTTP Error without response: {e}") from e
-        
+
         status_code = e.response.status_code
-        content_type = e.response.headers.get('Content-Type', '')
+        content_type = e.response.headers.get("Content-Type", "")
         message = e.response.text
-        if 'application/json' in content_type:
+        if "application/json" in content_type:
             try:
                 error_info = e.response.json()
                 message = error_info.get("message", e.response.text)
             except ValueError:
                 message = e.response.text
 
-        raise PDFGateError(f"HTTP Error: status {status_code} - message: {message}") from e
+        raise PDFGateError(
+            f"HTTP Error: status {status_code} - message: {message}"
+        ) from e
     except requests.RequestException as e:
         # Timeout, ConnectionError, etc.
         raise PDFGateError(f"Request failed: {e}") from e
 
     return response
+
 
 class PDFGate:
     """Client for the PDFGate API.
@@ -55,6 +75,7 @@ class PDFGate:
         domain (str):
             Base API domain derived from the API key.
     """
+
     def __init__(self, api_key: str):
         """Initialize a PDFGate client.
 
@@ -76,9 +97,7 @@ class PDFGate:
         Returns:
             A dict of headers including the Authorization bearer token.
         """
-        return {
-            "Authorization": f"Bearer {self.api_key}"
-        }
+        return {"Authorization": f"Bearer {self.api_key}"}
 
     def get_document(self, params: GetDocumentParams) -> PDFGateDocument:
         """Retrieve a document from the PDFGate API.
@@ -101,7 +120,9 @@ class PDFGate:
         """
         request = self.request_builder.build_get_document(params)
         response = self.sync_client.try_make_request(request)
-        result = cast(PDFGateDocument, ResponseBuilder.build_response(response, json=True))
+        result = cast(
+            PDFGateDocument, ResponseBuilder.build_response(response, json=True)
+        )
 
         return result
 
@@ -126,7 +147,9 @@ class PDFGate:
         """
         request = self.request_builder.build_get_document(params)
         response = await self.async_client.try_make_request_async(request)
-        result = cast(PDFGateDocument, ResponseBuilder.build_response(response, json=True))
+        result = cast(
+            PDFGateDocument, ResponseBuilder.build_response(response, json=True)
+        )
 
         return result
 
@@ -159,7 +182,9 @@ class PDFGate:
         returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         if not params.html and not params.url:
-            raise ParamsValidationError("Either the 'html' or 'url' parameters must be provided to generate a PDF.")
+            raise ParamsValidationError(
+                "Either the 'html' or 'url' parameters must be provided to generate a PDF."
+            )
 
         request = self.request_builder.build_generate_pdf(params)
         response = self.sync_client.try_make_request(request)
@@ -167,14 +192,18 @@ class PDFGate:
 
         return result
 
-    async def generate_pdf_async(self, params: GeneratePDFParams) -> Union[bytes, PDFGateDocument]:
+    async def generate_pdf_async(
+        self, params: GeneratePDFParams
+    ) -> Union[bytes, PDFGateDocument]:
         """Generate a PDF document.
 
         Depending on the `json_response` flag in `params`, this method either
         returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         if not params.html and not params.url:
-            raise ParamsValidationError("Either the 'html' or 'url' parameters must be provided to generate a PDF.")
+            raise ParamsValidationError(
+                "Either the 'html' or 'url' parameters must be provided to generate a PDF."
+            )
 
         request = self.request_builder.build_generate_pdf(params)
         response = await self.async_client.try_make_request_async(request)
@@ -194,7 +223,9 @@ class PDFGate:
 
         return result
 
-    async def flatten_pdf_async(self, params: FlattenPDFParams) -> Union[bytes, PDFGateDocument]:
+    async def flatten_pdf_async(
+        self, params: FlattenPDFParams
+    ) -> Union[bytes, PDFGateDocument]:
         """Flatten a PDF document.
 
         Depending on the `json_response` flag in `params`, this method either
@@ -211,9 +242,13 @@ class PDFGate:
         url = URLBuilder.extract_pdf_form_data_url(self.domain)
         if isinstance(params, ExtractPDFFormDataByDocumentIdParams):
             params_dict = {"documentId": params.document_id}
-            request = requests.Request("POST", url=url, headers=headers, data=params_dict).prepare()
+            request = requests.Request(
+                "POST", url=url, headers=headers, data=params_dict
+            ).prepare()
         else:
-            request = requests.Request("POST", url=url, headers=headers, files={"file": params.file}).prepare()
+            request = requests.Request(
+                "POST", url=url, headers=headers, files={"file": params.file}
+            ).prepare()
 
         response = try_make_request(request)
 
@@ -240,13 +275,23 @@ class PDFGate:
         params_without_nulls: dict[str, Any] = {}
         for k, v in params_dict.items():
             if v is not None:
-                params_without_nulls[snake_to_camel(k)] = v.value if isinstance(v, Enum) else v
+                params_without_nulls[snake_to_camel(k)] = (
+                    v.value if isinstance(v, Enum) else v
+                )
 
         if isinstance(params, ProtectPDFByDocumentIdParams):
-            request = requests.Request("POST", url=url, headers=headers, data=params_without_nulls).prepare()
+            request = requests.Request(
+                "POST", url=url, headers=headers, data=params_without_nulls
+            ).prepare()
         else:
             file_param = {"file": params_without_nulls.pop("file", None)}
-            request = requests.Request("POST", url=url, headers=headers, data=params_without_nulls, files=file_param).prepare()
+            request = requests.Request(
+                "POST",
+                url=url,
+                headers=headers,
+                data=params_without_nulls,
+                files=file_param,
+            ).prepare()
 
         timeout = int(timedelta(minutes=3).total_seconds())
         response = try_make_request(request, timeout=timeout)
@@ -258,8 +303,7 @@ class PDFGate:
         return response.content
 
     def compress_pdf(self, params: CompressPDFParams) -> Union[bytes, PDFGateDocument]:
-        """Compress a PDF document to reduce its size without changing its visual content.
-        """
+        """Compress a PDF document to reduce its size without changing its visual content."""
         headers = self.get_base_headers()
         url = URLBuilder.compress_pdf_url(self.domain)
 
@@ -267,13 +311,23 @@ class PDFGate:
         params_without_nulls: dict[str, Any] = {}
         for k, v in params_dict.items():
             if v is not None:
-                params_without_nulls[snake_to_camel(k)] = v.value if isinstance(v, Enum) else v
+                params_without_nulls[snake_to_camel(k)] = (
+                    v.value if isinstance(v, Enum) else v
+                )
 
         if isinstance(params, CompressPDFByDocumentIdParams):
-            request = requests.Request("POST", url=url, headers=headers, data=params_without_nulls).prepare()
+            request = requests.Request(
+                "POST", url=url, headers=headers, data=params_without_nulls
+            ).prepare()
         else:
             file_param = {"file": params_without_nulls.pop("file", None)}
-            request = requests.Request("POST", url=url, headers=headers, data=params_without_nulls, files=file_param).prepare()
+            request = requests.Request(
+                "POST",
+                url=url,
+                headers=headers,
+                data=params_without_nulls,
+                files=file_param,
+            ).prepare()
 
         timeout = int(timedelta(minutes=3).total_seconds())
         response = try_make_request(request, timeout=timeout)

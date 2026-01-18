@@ -1,4 +1,3 @@
-
 class URLBuilder:
     """Helper class to build URLs for the PDFGate API."""
 

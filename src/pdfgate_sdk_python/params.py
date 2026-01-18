@@ -4,68 +4,78 @@ from typing import Any, NamedTuple, Optional, Union
 
 
 class PageSizeType(Enum):
-  A0 = "a0"
-  A1 = "a1"
-  A2 = "a2"
-  A3 = "a3"
-  A4 = "a4"
-  A5 = "a5"
-  A6 = "a6"
-  LEDGER = "ledger"
-  TABLOID = "tabloid"
-  LEGAL = "legal"
-  LETTER = "letter"
+    A0 = "a0"
+    A1 = "a1"
+    A2 = "a2"
+    A3 = "a3"
+    A4 = "a4"
+    A5 = "a5"
+    A6 = "a6"
+    LEDGER = "ledger"
+    TABLOID = "tabloid"
+    LEGAL = "legal"
+    LETTER = "letter"
+
 
 class FileOrientation(Enum):
-  PORTRAIT = "portrait"
-  LANDSCAPE = "landscape"
+    PORTRAIT = "portrait"
+    LANDSCAPE = "landscape"
+
 
 class EmulateMediaType(Enum):
-  SCREEN = "screen"
-  PRINT = "print"
+    SCREEN = "screen"
+    PRINT = "print"
+
 
 class PdfStandardFont(Enum):
-  TIMES_ROMAN = "times-roman"
-  TIMES_BOLD = "times-bold"
-  TIMES_ITALIC = "times-italic"
-  TIMES_BOLD_ITALIC = "times-bolditalic"
-  HELVETICA = "helvetica"
-  HELVETICA_BOLD = "helvetica-bold"
-  HELVETICA_OBLIQUE = "helvetica-oblique"
-  HELVETICA_BOLD_OBLIQUE = "helvetica-boldoblique"
-  COURIER = "courier"
-  COURIER_BOLD = "courier-bold"
-  COURIER_OBLIQUE = "courier-oblique"
-  COURIER_BOLD_OBLIQUE = "courier-boldoblique"
+    TIMES_ROMAN = "times-roman"
+    TIMES_BOLD = "times-bold"
+    TIMES_ITALIC = "times-italic"
+    TIMES_BOLD_ITALIC = "times-bolditalic"
+    HELVETICA = "helvetica"
+    HELVETICA_BOLD = "helvetica-bold"
+    HELVETICA_OBLIQUE = "helvetica-oblique"
+    HELVETICA_BOLD_OBLIQUE = "helvetica-boldoblique"
+    COURIER = "courier"
+    COURIER_BOLD = "courier-bold"
+    COURIER_OBLIQUE = "courier-oblique"
+    COURIER_BOLD_OBLIQUE = "courier-boldoblique"
+
 
 @dataclass
 class PdfPageMargin:
-  top: Optional[str] = None
-  bottom: Optional[str] = None
-  left: Optional[str] = None
-  right: Optional[str] = None
+    top: Optional[str] = None
+    bottom: Optional[str] = None
+    left: Optional[str] = None
+    right: Optional[str] = None
+
 
 @dataclass
 class ClickSelectorChain:
-  selectors: list[str]
+    selectors: list[str]
+
 
 @dataclass
 class ClickSelectorChainSetup:
-  ignore_failing_chains: Optional[bool] = None
-  chains: Optional[list["ClickSelectorChain"]] = None
+    ignore_failing_chains: Optional[bool] = None
+    chains: Optional[list["ClickSelectorChain"]] = None
+
 
 @dataclass
 class PDFGateParams:
     pass
+
 
 @dataclass
 class GetDocumentParams(PDFGateParams):
     document_id: str
     pre_signed_url_expires_in: Optional[int] = None
 
+
 @dataclass
 class GetFileParams(PDFGateParams):
     document_id: str
+
 
 @dataclass
 class GeneratePDFParams(PDFGateParams):
@@ -99,40 +109,52 @@ class GeneratePDFParams(PDFGateParams):
     print_background: Optional[bool] = None
     user_agent: Optional[str] = None
 
+
 @dataclass
 class FlattenPDFBaseParams(PDFGateParams):
-   json_response: Optional[bool] = False
-   pre_signed_url_expires_in: Optional[int] = None
-   metadata: Optional[Any] = None
+    json_response: Optional[bool] = False
+    pre_signed_url_expires_in: Optional[int] = None
+    metadata: Optional[Any] = None
+
 
 class PDFFileParam(NamedTuple):
-   name: str
-   data: bytes
-   type: str = "application/pdf"
+    name: str
+    data: bytes
+    type: str = "application/pdf"
+
 
 @dataclass
 class FlattenPDFBinaryParams(FlattenPDFBaseParams):
-   file: Optional[PDFFileParam] = None
+    file: Optional[PDFFileParam] = None
+
 
 @dataclass
 class FlattenPDFDocumentParams(FlattenPDFBaseParams):
-   document_id: Optional[str] = None
+    document_id: Optional[str] = None
+
 
 FlattenPDFParams = Union[FlattenPDFBinaryParams, FlattenPDFDocumentParams]
 
+
 @dataclass
 class ExtractPDFFormDataByDocumentIdParams(PDFGateParams):
-   document_id: str
+    document_id: str
+
 
 @dataclass
 class ExtractPDFFormDataByFileParams(PDFGateParams):
-   file: PDFFileParam
+    file: PDFFileParam
 
-ExtractPDFFormDataParams = Union[ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams]
+
+ExtractPDFFormDataParams = Union[
+    ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams
+]
+
 
 class EncryptionAlgorithm(Enum):
-   AES_256 = "AES256"
-   AES_128 = "AES128"
+    AES_256 = "AES256"
+    AES_128 = "AES128"
+
 
 @dataclass
 class ProtectPDFBaseParams(PDFGateParams):
@@ -147,15 +169,19 @@ class ProtectPDFBaseParams(PDFGateParams):
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
 
+
 @dataclass
 class ProtectPDFByDocumentIdParams(ProtectPDFBaseParams):
     document_id: Optional[str] = None
+
 
 @dataclass
 class ProtectPDFByFileParams(ProtectPDFBaseParams):
     file: Optional[PDFFileParam] = None
 
+
 ProtectPDFParams = Union[ProtectPDFByDocumentIdParams, ProtectPDFByFileParams]
+
 
 @dataclass
 class CompressPDFBaseParams(PDFGateParams):
@@ -164,12 +190,15 @@ class CompressPDFBaseParams(PDFGateParams):
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
 
+
 @dataclass
 class CompressPDFByDocumentIdParams(CompressPDFBaseParams):
     document_id: Optional[str] = None
 
+
 @dataclass
 class CompressPDFByFileParams(CompressPDFBaseParams):
     file: Optional[PDFFileParam] = None
+
 
 CompressPDFParams = Union[CompressPDFByDocumentIdParams, CompressPDFByFileParams]

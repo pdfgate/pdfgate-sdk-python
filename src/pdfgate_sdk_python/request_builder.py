@@ -1,4 +1,3 @@
-
 from dataclasses import asdict, dataclass
 from datetime import timedelta
 from typing import Any
@@ -6,7 +5,13 @@ import httpx
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 from pdfgate_sdk_python.dict_keys_converter import snake_to_camel
 from pdfgate_sdk_python.errors import PDFGateError
-from pdfgate_sdk_python.params import FlattenPDFBinaryParams, FlattenPDFParams, GeneratePDFParams, GetDocumentParams, PDFGateParams
+from pdfgate_sdk_python.params import (
+    FlattenPDFBinaryParams,
+    FlattenPDFParams,
+    GeneratePDFParams,
+    GetDocumentParams,
+    PDFGateParams,
+)
 from pdfgate_sdk_python.url_builder import URLBuilder
 
 
@@ -28,7 +33,10 @@ def get_domain_from_api_key(api_key: str) -> str:
     elif api_key.startswith("test_"):
         return SANDBOX_API_DOMAIN
     else:
-        raise PDFGateError("Invalid API key format. Expected to start with 'live_' or 'test_'.")
+        raise PDFGateError(
+            "Invalid API key format. Expected to start with 'live_' or 'test_'."
+        )
+
 
 def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
     params_dict = asdict(instance)
@@ -39,22 +47,21 @@ def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
 
     return params_without_nulls
 
+
 @dataclass
 class PDFGateRequest:
     request: httpx.Request
     timeout: int = int(timedelta(seconds=60).total_seconds())
 
-class RequestBuilder:
 
+class RequestBuilder:
     def __init__(self, api_key: str):
         domain = get_domain_from_api_key(api_key)
         self.url_builder = URLBuilder(domain)
         self.api_key = api_key
 
     def get_headers(self) -> dict[str, str]:
-        return {
-            "Authorization": f"Bearer {self.api_key}"
-        }
+        return {"Authorization": f"Bearer {self.api_key}"}
 
     def _get_request(self, url: str, params: dict[str, Any] = {}) -> httpx.Request:
         return httpx.Request("GET", url=url, headers=self.get_headers(), params=params)
@@ -62,8 +69,12 @@ class RequestBuilder:
     def _json_post_request(self, url: str, json: dict[str, Any]) -> httpx.Request:
         return httpx.Request("POST", url=url, headers=self.get_headers(), json=json)
 
-    def _multipart_post_request(self, url: str, data: dict[str, Any], files: dict[str, Any]) -> httpx.Request:
-        return httpx.Request("POST", url=url, headers=self.get_headers(), data=data, files=files)
+    def _multipart_post_request(
+        self, url: str, data: dict[str, Any], files: dict[str, Any]
+    ) -> httpx.Request:
+        return httpx.Request(
+            "POST", url=url, headers=self.get_headers(), data=data, files=files
+        )
 
     def build_get_file(self, document_id: str) -> PDFGateRequest:
         url = self.url_builder.get_file_url(document_id)
@@ -97,7 +108,9 @@ class RequestBuilder:
         else:
             files = {}
 
-        request = self._multipart_post_request(url, data=params_without_nulls, files=files)
+        request = self._multipart_post_request(
+            url, data=params_without_nulls, files=files
+        )
         timeout = int(timedelta(minutes=3).total_seconds())
 
         return PDFGateRequest(request=request, timeout=timeout)
