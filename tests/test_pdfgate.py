@@ -1,14 +1,13 @@
 from datetime import datetime
 import random
-from typing import TypedDict
+from typing import TypedDict, Union
 import uuid
 import httpx
 import pytest
-import requests
-import responses
 import respx
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN
 from pdfgate_sdk_python.errors import PDFGateError, ParamsValidationError
+from pdfgate_sdk_python.http_client import PDFGateHTTPClientSync
 from pdfgate_sdk_python.params import (
     FlattenPDFBinaryParams,
     FlattenPDFDocumentParams,
@@ -16,9 +15,9 @@ from pdfgate_sdk_python.params import (
     GetDocumentParams,
     PDFFileParam,
 )
-from pdfgate_sdk_python.pdfgate import PDFGate, try_make_request
-from requests import exceptions
+from pdfgate_sdk_python.pdfgate import PDFGate
 
+from pdfgate_sdk_python.request_builder import PDFGateRequest
 from pdfgate_sdk_python.responses import DocumentStatus
 from pdfgate_sdk_python.url_builder import URLBuilder
 
@@ -89,43 +88,55 @@ def test_invalid_api_key_raises() -> None:
         PDFGate("wrong_prefix_213123")
 
 
-@responses.activate
-def test_try_make_request_raises_when_request_returns_an_http_error() -> None:
+def test_try_make_request_raises_when_request_returns_an_http_error(
+    respx_mock: respx.MockRouter,
+    api_key: str,
+) -> None:
     url = "https://example.com"
     message = "Required field 'pdf' is missing"
-    responses.add(
-        responses.GET,
-        url,
-        json={"statusCode": 400, "message": message, "error": "Bad Request"},
-        status=400,
+    route = respx_mock.get(url)
+    route.mock(
+        return_value=httpx.Response(
+            400, json={"statusCode": 400, "message": message, "error": "Bad Request"}
+        )
     )
-    request = requests.Request("GET", url=url).prepare()
+    httpx_request = httpx.Request("GET", url=url)
+    request = PDFGateRequest(request=httpx_request)
 
     error_message_pattern = rf"HTTP Error.*400.*{message}.*"
+    http_client = PDFGateHTTPClientSync(api_key=api_key)
     with pytest.raises(PDFGateError, match=error_message_pattern):
-        try_make_request(request)
+        http_client.try_make_request(request)
 
 
 @pytest.mark.parametrize(
     "body, match_pattern",
     [
-        (exceptions.Timeout("Request timed out"), r"Request failed.*Request timed out"),
         (
-            exceptions.ConnectionError("Connection failed"),
+            httpx.ConnectTimeout("Request timed out"),
+            r"Request failed.*Request timed out",
+        ),
+        (
+            httpx.ConnectError("Connection failed"),
             r"Request failed.*Connection failed",
         ),
     ],
 )
-@responses.activate
 def test_try_make_request_raises_when_request_fails(
-    body: Exception, match_pattern: str
+    respx_mock: respx.MockRouter,
+    api_key: str,
+    body: Union[httpx.ConnectTimeout, httpx.ConnectError],
+    match_pattern: str,
 ) -> None:
     url = "https://example.com"
-    responses.add(responses.GET, url, body=body)
-    request = requests.Request("GET", url=url).prepare()
+    route = respx_mock.get(url)
+    route.mock(side_effect=body)
+    httpx_request = httpx.Request("GET", url=url)
+    request = PDFGateRequest(request=httpx_request)
 
+    http_client = PDFGateHTTPClientSync(api_key=api_key)
     with pytest.raises(PDFGateError, match=match_pattern):
-        try_make_request(request)
+        http_client.try_make_request(request)
 
 
 def test_get_document_returns_document(
