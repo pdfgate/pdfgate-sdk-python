@@ -12,6 +12,7 @@ import requests
 from pdfgate_sdk_python.dict_keys_converter import convert_camel_keys_to_snake, snake_to_camel
 from pdfgate_sdk_python.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
 from pdfgate_sdk_python.request_builder import RequestBuilder, get_domain_from_api_key
+from pdfgate_sdk_python.response_builder import ResponseBuilder
 from pdfgate_sdk_python.url_builder import URLBuilder
 
 from .errors import PDFGateError, ParamsValidationError
@@ -100,9 +101,9 @@ class PDFGate:
         """
         request = self.request_builder.build_get_document(params)
         response = self.sync_client.try_make_request(request)
-        json_response = response.json()
+        result = cast(PDFGateDocument, ResponseBuilder.build_response(response, json=True))
 
-        return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
+        return result
 
     async def get_document_async(self, params: GetDocumentParams) -> PDFGateDocument:
         """Retrieve a document from the PDFGate API.
@@ -125,9 +126,9 @@ class PDFGate:
         """
         request = self.request_builder.build_get_document(params)
         response = await self.async_client.try_make_request_async(request)
-        json_response = response.json()
+        result = cast(PDFGateDocument, ResponseBuilder.build_response(response, json=True))
 
-        return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
+        return result
 
     def get_file(self, params: GetFileParams) -> bytes:
         """Download a raw PDF file by its document ID.
@@ -162,12 +163,9 @@ class PDFGate:
 
         request = self.request_builder.build_generate_pdf(params)
         response = self.sync_client.try_make_request(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
 
-        if params.json_response:
-            json_response = response.json()
-            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
-
-        return response.content
+        return result
 
     async def generate_pdf_async(self, params: GeneratePDFParams) -> Union[bytes, PDFGateDocument]:
         """Generate a PDF document.
@@ -180,12 +178,9 @@ class PDFGate:
 
         request = self.request_builder.build_generate_pdf(params)
         response = await self.async_client.try_make_request_async(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
 
-        if params.json_response:
-            json_response = response.json()
-            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
-
-        return response.content
+        return result
 
     def flatten_pdf(self, params: FlattenPDFParams) -> Union[bytes, PDFGateDocument]:
         """Flatten a PDF document.
@@ -195,12 +190,9 @@ class PDFGate:
         """
         request = self.request_builder.build_flatten_pdf(params)
         response = self.sync_client.try_make_request(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
 
-        if params.json_response:
-            json_response = response.json()
-            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
-
-        return response.content
+        return result
 
     async def flatten_pdf_async(self, params: FlattenPDFParams) -> Union[bytes, PDFGateDocument]:
         """Flatten a PDF document.
@@ -209,15 +201,10 @@ class PDFGate:
         returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         request = self.request_builder.build_flatten_pdf(params)
-        httpx_request = request.request
-        httpx_request.read()
         response = await self.async_client.try_make_request_async(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
 
-        if params.json_response:
-            json_response = response.json()
-            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
-
-        return response.content
+        return result
 
     def extract_pdf_form_data(self, params: ExtractPDFFormDataParams) -> Any:
         headers = self.get_base_headers()
