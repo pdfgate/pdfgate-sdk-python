@@ -193,19 +193,25 @@ class PDFGate:
         Depending on the `json_response` flag in `params`, this method either
         returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
-        headers = self.get_base_headers()
-        url = URLBuilder.flatten_pdf_url(self.domain)
-        params_dict = asdict(params)
-        params_without_nulls: dict[str, Any] = {}
-        for k, v in params_dict.items():
-            if v is not None:
-                params_without_nulls[snake_to_camel(k)] = v
+        request = self.request_builder.build_flatten_pdf(params)
+        response = self.sync_client.try_make_request(request)
 
-        file_param = {"file": params_without_nulls.pop("file", None)}
+        if params.json_response:
+            json_response = response.json()
+            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
 
-        request = requests.Request("POST", url=url, headers=headers, files=file_param, data=params_without_nulls).prepare()
-        timeout = int(timedelta(minutes=3).total_seconds())
-        response = try_make_request(request, timeout=timeout)
+        return response.content
+
+    async def flatten_pdf_async(self, params: FlattenPDFParams) -> Union[bytes, PDFGateDocument]:
+        """Flatten a PDF document.
+
+        Depending on the `json_response` flag in `params`, this method either
+        returns the raw PDF bytes or a `PDFGateDocument` instance.
+        """
+        request = self.request_builder.build_flatten_pdf(params)
+        httpx_request = request.request
+        httpx_request.read()
+        response = await self.async_client.try_make_request_async(request)
 
         if params.json_response:
             json_response = response.json()

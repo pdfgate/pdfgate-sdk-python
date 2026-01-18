@@ -42,15 +42,14 @@ class URLBuilder:
         """
         return f"{self.domain}/v1/generate/pdf"
 
-    @staticmethod
-    def flatten_pdf_url(domain: str) -> str:
+    def flatten_pdf_url(self) -> str:
         """Build the URL for flattening a PDF.
 
         Args:
             domain:
                 Base API domain.
         """
-        return f"{domain}/forms/flatten"
+        return f"{self.domain}/forms/flatten"
 
     @staticmethod
     def extract_pdf_form_data_url(domain: str) -> str:

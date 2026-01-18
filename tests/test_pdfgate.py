@@ -159,32 +159,24 @@ def test_generate_pdf_returns_bytes_when_json_reponse_false(client: PDFGate, url
     assert isinstance(response, bytes)
     assert response.startswith(b"%PDF-1.4")
 
-@responses.activate
-def test_flatten_pdf_by_document_id_returns_json_when_json_reponse_true(client: PDFGate, flattened_document_response: FlattenedDocumentResponse, document_id: str) -> None:
-    responses.add(
-        responses.POST,
-        URLBuilder.flatten_pdf_url(PRODUCTION_API_DOMAIN),
-        json=flattened_document_response,
-        status=201
-    )
+def test_flatten_pdf_by_document_id_returns_json_when_json_reponse_true(client: PDFGate, url_builder: URLBuilder, flattened_document_response: FlattenedDocumentResponse, document_id: str, respx_mock: respx.MockRouter) -> None:
+    url = url_builder.flatten_pdf_url()
+    route = respx_mock.post(url)
+    route.mock(return_value=httpx.Response(201, json=flattened_document_response))
     params = FlattenPDFDocumentParams(document_id=document_id, json_response=True)
 
     response = client.flatten_pdf(params)
+
     assert isinstance(response, dict)
     assert response.get("id") == flattened_document_response["id"]
     assert response.get("status") == flattened_document_response["status"]
     assert response.get("created_at") == flattened_document_response["createdAt"]
     assert response.get("derived_from") == document_id
 
-@responses.activate
-def test_flatten_pdf_by_file_returns_bytes_when_json_reponse_false(client: PDFGate) -> None:
-    responses.add(
-        responses.POST,
-        URLBuilder.flatten_pdf_url(PRODUCTION_API_DOMAIN),
-        body=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",
-        content_type="application/octet-stream",
-        status=201
-    )
+def test_flatten_pdf_by_file_returns_bytes_when_json_reponse_false(client: PDFGate, url_builder: URLBuilder, respx_mock: respx.MockRouter) -> None:
+    url = url_builder.flatten_pdf_url()
+    route = respx_mock.post(url)
+    route.mock(return_value=httpx.Response(201, content=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW", headers={"Content-Type": "application/octet-stream"}))
     params = FlattenPDFBinaryParams(
         file=PDFFileParam(
             name="input.pdf",
@@ -194,4 +186,6 @@ def test_flatten_pdf_by_file_returns_bytes_when_json_reponse_false(client: PDFGa
     )
 
     response = client.flatten_pdf(params)
+
     assert isinstance(response, bytes)
+    assert response.startswith(b"%PDF-1.4")

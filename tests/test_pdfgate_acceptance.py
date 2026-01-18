@@ -139,6 +139,17 @@ def test_flatten_pdf_by_file(client: PDFGate, pdf_file: bytes) -> None:
     assert "status" in flattened_document
     assert "created_at" in flattened_document
 
+@pytest.mark.asyncio
+async def test_flatten_pdf_async_by_file(client: PDFGate, pdf_file: bytes) -> None:
+    file_param = PDFFileParam(name="input.pdf", data=pdf_file)
+    flatten_pdf_params = FlattenPDFBinaryParams(file=file_param, json_response=True)
+    flattened_document = await client.flatten_pdf_async(flatten_pdf_params)
+
+    assert isinstance(flattened_document, dict)
+    assert "id" in flattened_document
+    assert "status" in flattened_document
+    assert "created_at" in flattened_document
+
 def test_extract_pdf_form_data_by_document_id(client: PDFGate, html_with_form: str) -> None:
     generate_pdf_params = GeneratePDFParams(html=html_with_form, enable_form_fields=True, json_response=True)
     document_response = cast(PDFGateDocument, client.generate_pdf(generate_pdf_params))

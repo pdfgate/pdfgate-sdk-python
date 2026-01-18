@@ -6,7 +6,7 @@ import httpx
 from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
 from pdfgate_sdk_python.dict_keys_converter import snake_to_camel
 from pdfgate_sdk_python.errors import PDFGateError
-from pdfgate_sdk_python.params import GeneratePDFParams, GetDocumentParams, PDFGateParams
+from pdfgate_sdk_python.params import FlattenPDFBinaryParams, FlattenPDFParams, GeneratePDFParams, GetDocumentParams, PDFGateParams
 from pdfgate_sdk_python.url_builder import URLBuilder
 
 
@@ -59,8 +59,11 @@ class RequestBuilder:
     def _get_request(self, url: str, params: dict[str, Any] = {}) -> httpx.Request:
         return httpx.Request("GET", url=url, headers=self.get_headers(), params=params)
 
-    def _post_request(self, url: str, json: dict[str, Any]) -> httpx.Request:
+    def _json_post_request(self, url: str, json: dict[str, Any]) -> httpx.Request:
         return httpx.Request("POST", url=url, headers=self.get_headers(), json=json)
+
+    def _multipart_post_request(self, url: str, data: dict[str, Any], files: dict[str, Any]) -> httpx.Request:
+        return httpx.Request("POST", url=url, headers=self.get_headers(), data=data, files=files)
 
     def build_get_file(self, document_id: str) -> PDFGateRequest:
         url = self.url_builder.get_file_url(document_id)
@@ -81,7 +84,20 @@ class RequestBuilder:
     def build_generate_pdf(self, params: GeneratePDFParams) -> PDFGateRequest:
         url = self.url_builder.generate_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
-        request = self._post_request(url, json=params_without_nulls)
+        request = self._json_post_request(url, json=params_without_nulls)
         timeout = int(timedelta(minutes=15).total_seconds())
+
+        return PDFGateRequest(request=request, timeout=timeout)
+
+    def build_flatten_pdf(self, params: FlattenPDFParams) -> PDFGateRequest:
+        url = self.url_builder.flatten_pdf_url()
+        params_without_nulls = pdfgate_params_to_params_dict(params)
+        if isinstance(params, FlattenPDFBinaryParams) and params.file is not None:
+            files = {"file": params_without_nulls.pop("file")}
+        else:
+            files = {}
+
+        request = self._multipart_post_request(url, data=params_without_nulls, files=files)
+        timeout = int(timedelta(minutes=3).total_seconds())
 
         return PDFGateRequest(request=request, timeout=timeout)
