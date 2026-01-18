@@ -16,10 +16,11 @@ from pdfgate_sdk_python.params import (
     GetDocumentParams,
     PDFFileParam,
 )
-from pdfgate_sdk_python.pdfgate import PDFGate, URLBuilder, try_make_request
+from pdfgate_sdk_python.pdfgate import PDFGate, try_make_request
 from requests import exceptions
 
 from pdfgate_sdk_python.responses import DocumentStatus
+from pdfgate_sdk_python.url_builder import URLBuilder
 
 
 class TestURLBuilder:

@@ -12,3 +12,11 @@ repos:
     -   id: ruff
         args: [--fix]
     -   id: ruff-format
+-   repo: local
+    hooks:
+    -   id: hatch-mypy
+        name: hatch mypy
+        language: system
+        entry: hatch run dev:check
+        types: [python]
+        pass_filenames: false  # Mypy usually works better on the whole project
