@@ -18,6 +18,8 @@ from pdfgate_sdk_python.params import (
     GetDocumentParams,
     GetFileParams,
     PDFFileParam,
+    PageSizeType,
+    PdfPageMargin,
     ProtectPDFByDocumentIdParams,
     ProtectPDFByFileParams,
 )
@@ -84,6 +86,21 @@ def html_with_form() -> str:
             <input type='text' name='last_name' value='Doe'/>
         </form>
         """
+
+
+def test_generate_pdf_with_enum_params(client: PDFGate) -> None:
+    generate_pdf_params = GeneratePDFParams(
+        html="<html><body><h1>Hello, PDFGate!</h1></body></html>",
+        page_size_type=PageSizeType.A4,
+        margin=PdfPageMargin(top="10", bottom="10", left="10", right="10"),
+        json_response=True,
+    )
+    document_response = client.generate_pdf(generate_pdf_params)
+
+    assert isinstance(document_response, dict)
+    assert "id" in document_response
+    assert "status" in document_response and document_response["status"] == "completed"
+    assert "created_at" in document_response
 
 
 def test_generate_pdf_with_json_response(client: PDFGate) -> None:
