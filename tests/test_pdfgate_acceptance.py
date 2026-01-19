@@ -23,6 +23,7 @@ from pdfgate_sdk_python.params import (
     PdfPageMargin,
     ProtectPDFByDocumentIdParams,
     ProtectPDFByFileParams,
+    Viewport,
 )
 from pdfgate_sdk_python.pdfgate import PDFGate
 from pdfgate_sdk_python.responses import PDFGateDocument
@@ -139,11 +140,11 @@ def test_generate_pdf_with_binary_response(client: PDFGate) -> None:
     assert file_content.startswith(b"%PDF")
 
 
-@pytest.mark.dev
 def test_generate_pdf_with_authentication(client: PDFGate) -> None:
     generate_pdf_params = GeneratePDFParams(
         url="https://httpbin.org/basic-auth/user/passwd",
         authentication=GeneratePDFAuthentication(username="user", password="passwd"),
+        viewport=Viewport(width=1280, height=720),
         json_response=False,
     )
     file_content = cast(bytes, client.generate_pdf(generate_pdf_params))

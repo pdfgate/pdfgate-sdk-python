@@ -101,8 +101,18 @@ class GetFileParams(PDFGateParams):
 
 @dataclass
 class GeneratePDFAuthentication:
+    """ "Authentication credentials for accessing protected web content."""
+
     username: str
     password: str
+
+
+@dataclass
+class Viewport:
+    """Viewport dimensions for rendering."""
+
+    width: int
+    height: int
 
 
 @dataclass
@@ -139,6 +149,7 @@ class GeneratePDFParams(PDFGateParams):
     print_background: Optional[bool] = None
     user_agent: Optional[str] = None
     authentication: Optional[GeneratePDFAuthentication] = None
+    viewport: Optional[Viewport] = None
 
 
 @dataclass
