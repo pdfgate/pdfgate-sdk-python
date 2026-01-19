@@ -14,6 +14,7 @@ from pdfgate_sdk_python.params import (
     ExtractPDFFormDataByFileParams,
     FlattenPDFByFileParams,
     FlattenPDFByDocumentIdParams,
+    GeneratePDFAuthentication,
     GeneratePDFParams,
     GetDocumentParams,
     GetFileParams,
@@ -131,6 +132,19 @@ async def test_generate_pdf_async_with_json_response(client: PDFGate) -> None:
 def test_generate_pdf_with_binary_response(client: PDFGate) -> None:
     generate_pdf_params = GeneratePDFParams(
         html="<html><body><h1>Hello, PDFGate!</h1></body></html>", json_response=False
+    )
+    file_content = cast(bytes, client.generate_pdf(generate_pdf_params))
+
+    assert isinstance(file_content, bytes)
+    assert file_content.startswith(b"%PDF")
+
+
+@pytest.mark.dev
+def test_generate_pdf_with_authentication(client: PDFGate) -> None:
+    generate_pdf_params = GeneratePDFParams(
+        url="https://httpbin.org/basic-auth/user/passwd",
+        authentication=GeneratePDFAuthentication(username="user", password="passwd"),
+        json_response=False,
     )
     file_content = cast(bytes, client.generate_pdf(generate_pdf_params))
 

@@ -100,6 +100,12 @@ class GetFileParams(PDFGateParams):
 
 
 @dataclass
+class GeneratePDFAuthentication:
+    username: str
+    password: str
+
+
+@dataclass
 class GeneratePDFParams(PDFGateParams):
     """Parameters for generating a PDF from HTML or a URL."""
 
@@ -132,6 +138,7 @@ class GeneratePDFParams(PDFGateParams):
     page_ranges: Optional[str] = None
     print_background: Optional[bool] = None
     user_agent: Optional[str] = None
+    authentication: Optional[GeneratePDFAuthentication] = None
 
 
 @dataclass
