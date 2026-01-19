@@ -4,6 +4,7 @@ import pathlib
 import sys
 from typing import Any, TypedDict, cast
 import uuid
+from PIL import Image
 
 import pytest
 import pypdf
@@ -12,18 +13,21 @@ from pdfgate_sdk_python.params import (
     CompressPDFByFileParams,
     ExtractPDFFormDataByDocumentIdParams,
     ExtractPDFFormDataByFileParams,
+    FileParam,
     FlattenPDFByFileParams,
     FlattenPDFByDocumentIdParams,
     GeneratePDFAuthentication,
     GeneratePDFParams,
     GetDocumentParams,
     GetFileParams,
-    PDFFileParam,
     PageSizeType,
     PdfPageMargin,
     ProtectPDFByDocumentIdParams,
     ProtectPDFByFileParams,
     Viewport,
+    WatermarkPDFByDocumentIdParams,
+    WatermarkPDFByFileParams,
+    WatermarkType,
 )
 from pdfgate_sdk_python.pdfgate import PDFGate
 from pdfgate_sdk_python.responses import PDFGateDocument
@@ -78,6 +82,17 @@ def pdf_file(client: PDFGate) -> bytes:
     assert isinstance(file_content, bytes)
 
     return file_content
+
+
+@pytest.fixture(scope="module")
+def jpg_file() -> bytes:
+    """Generates a random image."""
+    image = Image.effect_noise((128, 128), 100)
+    image_byte_arr = io.BytesIO()
+    image.save(image_byte_arr, format="JPEG", quality=90)
+    jpeg_bytes = image_byte_arr.getvalue()
+
+    return jpeg_bytes
 
 
 @pytest.fixture
@@ -203,7 +218,7 @@ def test_flatten_pdf_by_document_id(client: PDFGate, document_id: str) -> None:
 
 
 def test_flatten_pdf_by_file(client: PDFGate, pdf_file: bytes) -> None:
-    file_param = PDFFileParam(name="input.pdf", data=pdf_file)
+    file_param = FileParam(name="input.pdf", data=pdf_file)
     flatten_pdf_params = FlattenPDFByFileParams(file=file_param, json_response=True)
     flattened_document = client.flatten_pdf(flatten_pdf_params)
 
@@ -215,7 +230,7 @@ def test_flatten_pdf_by_file(client: PDFGate, pdf_file: bytes) -> None:
 
 @pytest.mark.asyncio
 async def test_flatten_pdf_async_by_file(client: PDFGate, pdf_file: bytes) -> None:
-    file_param = PDFFileParam(name="input.pdf", data=pdf_file)
+    file_param = FileParam(name="input.pdf", data=pdf_file)
     flatten_pdf_params = FlattenPDFByFileParams(file=file_param, json_response=True)
     flattened_document = await client.flatten_pdf_async(flatten_pdf_params)
 
@@ -249,7 +264,7 @@ def test_extract_pdf_form_data_by_file(client: PDFGate, html_with_form: str) -> 
     file_content = cast(bytes, client.generate_pdf(generate_pdf_params))
 
     extract_form_params = ExtractPDFFormDataByFileParams(
-        file=PDFFileParam(name="input.pdf", data=file_content)
+        file=FileParam(name="input.pdf", data=file_content)
     )
     response = cast(dict[str, Any], client.extract_pdf_form_data(extract_form_params))
 
@@ -283,7 +298,7 @@ def test_protect_pdf_by_file_with_file_response(
     user_password = str(uuid.uuid4())
     owner_password = str(uuid.uuid4())
     protect_pdf_params = ProtectPDFByFileParams(
-        file=PDFFileParam(name="input.pdf", data=pdf_file),
+        file=FileParam(name="input.pdf", data=pdf_file),
         user_password=user_password,
         owner_password=owner_password,
         json_response=False,
@@ -328,7 +343,7 @@ def test_compress_pdf_by_file_with_file_response(
         f.write(pdf_file)
 
     compress_pdf_params = CompressPDFByFileParams(
-        file=PDFFileParam(name="input.pdf", data=pdf_file), json_response=False
+        file=FileParam(name="input.pdf", data=pdf_file), json_response=False
     )
 
     compressed_file = client.compress_pdf(compress_pdf_params)
@@ -338,3 +353,38 @@ def test_compress_pdf_by_file_with_file_response(
     # The Sandobox API may not always yield a smaller file because it adds
     # a watermark.
     # assert len(compressed_file) < len(pdf_file)
+
+
+def test_watermark_pdf_with_text_by_document_id(
+    client: PDFGate, document_id: str
+) -> None:
+    watermark_pdf_params = WatermarkPDFByDocumentIdParams(
+        document_id=document_id,
+        type=WatermarkType.TEXT,
+        text="Confidential - Do Not Distribute",
+        json_response=True,
+    )
+    response = cast(PDFGateDocument, client.watermark_pdf(watermark_pdf_params))
+
+    assert isinstance(response, dict)
+    assert "id" in response and response.get("id") != document_id
+    assert "type" in response and response.get("type") == "watermarked"
+    assert "derived_from" in response and response.get("derived_from") == document_id
+    assert "status" in response and response.get("status") == "completed"
+
+
+def test_watermark_pdf_with_image_by_file(
+    client: PDFGate, pdf_file: bytes, jpg_file: bytes
+) -> None:
+    watermark_pdf_params = WatermarkPDFByFileParams(
+        file=FileParam(name="input.pdf", data=pdf_file),
+        type=WatermarkType.IMAGE,
+        watermark=FileParam(name="watermark.jpg", data=jpg_file),
+        json_response=True,
+    )
+    response = cast(PDFGateDocument, client.watermark_pdf(watermark_pdf_params))
+
+    assert isinstance(response, dict)
+    assert "id" in response and response.get("id") != document_id
+    assert "type" in response and response.get("type") == "watermarked"
+    assert "status" in response and response.get("status") == "completed"

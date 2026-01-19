@@ -3,6 +3,7 @@
 from dataclasses import asdict, dataclass
 from datetime import timedelta
 from enum import Enum
+import mimetypes
 from typing import Any
 import httpx
 from pdfgate_sdk_python.config import Config
@@ -13,6 +14,7 @@ from pdfgate_sdk_python.params import (
     CompressPDFParams,
     ExtractPDFFormDataByDocumentIdParams,
     ExtractPDFFormDataParams,
+    FileParam,
     FlattenPDFByFileParams,
     FlattenPDFParams,
     GeneratePDFParams,
@@ -20,8 +22,13 @@ from pdfgate_sdk_python.params import (
     PDFGateParams,
     ProtectPDFByDocumentIdParams,
     ProtectPDFParams,
+    WatermarkPDFByDocumentIdParams,
+    WatermarkPDFParams,
+    WatermarkType,
 )
 from pdfgate_sdk_python.url_builder import URLBuilder
+
+FormDataFileParam = tuple[str, bytes, str]
 
 
 def get_domain_from_api_key(api_key: str) -> str:
@@ -98,6 +105,18 @@ class RequestBuilder:
             "POST", url=url, headers=self.get_headers(), data=data, files=files
         )
 
+    def _build_file_param(
+        self, file_param: FileParam, key: str
+    ) -> dict[str, FormDataFileParam]:
+        """Build a file parameter for multipart requests."""
+        if file_param.type is None:
+            mime_type, _encoding = mimetypes.guess_type(file_param.name)
+            mime_type = mime_type or "application/octet-stream"
+        else:
+            mime_type = file_param.type or "application/octet-stream"
+
+        return {key: (file_param.name, file_param.data, mime_type)}
+
     def build_get_file(self, document_id: str) -> PDFGateRequest:
         """Build a request to download a document's file content."""
         url = self.url_builder.get_file_url(document_id)
@@ -132,7 +151,7 @@ class RequestBuilder:
         url = self.url_builder.flatten_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
         if isinstance(params, FlattenPDFByFileParams) and params.file is not None:
-            files = {"file": params_without_nulls.pop("file")}
+            files = self._build_file_param(params_without_nulls.pop("file"), "file")
         else:
             files = {}
 
@@ -154,7 +173,8 @@ class RequestBuilder:
             params_dict = {"documentId": params.document_id}
             request = self._multipart_post_request(url, data=params_dict)
         else:
-            request = self._multipart_post_request(url, files={"file": params.file})
+            files = self._build_file_param(params.file, "file")
+            request = self._multipart_post_request(url, files=files)
 
         return PDFGateRequest(request=request)
 
@@ -192,6 +212,41 @@ class RequestBuilder:
             )
         timeout = int(
             timedelta(minutes=Config.COMPRESS_PDF_TIMEOUT_MINUTES).total_seconds()
+        )
+
+        return PDFGateRequest(request=request, timeout=timeout)
+
+    def build_watermark_pdf(self, params: WatermarkPDFParams) -> PDFGateRequest:
+        """Build a request to watermark a PDF from file or document ID."""
+        url = self.url_builder.watermark_pdf_url()
+        params_dict = pdfgate_params_to_params_dict(params)
+        if isinstance(params, WatermarkPDFByDocumentIdParams):
+            if params.type == WatermarkType.TEXT:
+                request = self._multipart_post_request(url=url, data=params_dict)
+            else:
+                watermark_file_param = self._build_file_param(
+                    params_dict.pop("watermark"), "watermark"
+                )
+                request = self._multipart_post_request(
+                    url=url,
+                    data=params_dict,
+                    files=watermark_file_param,
+                )
+        else:
+            if params.type == WatermarkType.IMAGE:
+                watermark_file_param = self._build_file_param(
+                    params_dict.pop("watermark"), "watermark"
+                )
+            else:
+                watermark_file_param = {}
+            file_param = self._build_file_param(params_dict.pop("file"), "file")
+            request = self._multipart_post_request(
+                url=url,
+                data=params_dict,
+                files={**file_param, **watermark_file_param},
+            )
+        timeout = int(
+            timedelta(minutes=Config.WATERMARK_PDF_TIMEOUT_MINUTES).total_seconds()
         )
 
         return PDFGateRequest(request=request, timeout=timeout)

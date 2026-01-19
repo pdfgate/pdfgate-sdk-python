@@ -71,3 +71,11 @@ class URLBuilder:
             Full URL to compress a PDF.
         """
         return f"{self.domain}/compress/pdf"
+
+    def watermark_pdf_url(self) -> str:
+        """Build the URL for watermarking a PDF.
+
+        Returns:
+            Full URL to watermark a PDF.
+        """
+        return f"{self.domain}/watermark/pdf"

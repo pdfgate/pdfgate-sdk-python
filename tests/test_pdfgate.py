@@ -13,7 +13,7 @@ from pdfgate_sdk_python.params import (
     FlattenPDFByDocumentIdParams,
     GeneratePDFParams,
     GetDocumentParams,
-    PDFFileParam,
+    FileParam,
 )
 from pdfgate_sdk_python.pdfgate import PDFGate
 
@@ -242,7 +242,7 @@ def test_flatten_pdf_by_file_returns_bytes_when_json_reponse_false(
         )
     )
     params = FlattenPDFByFileParams(
-        file=PDFFileParam(
+        file=FileParam(
             name="input.pdf",
             data=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",
         ),

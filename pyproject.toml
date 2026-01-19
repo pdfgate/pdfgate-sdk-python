@@ -47,7 +47,8 @@ dependencies = [
   "mypy>=1.0.0",
   "ruff",
   "pypdf",
-  "pre-commit"
+  "pre-commit",
+  "Pillow"
 ]
 
 [tool.hatch.envs.dev.scripts]
@@ -61,7 +62,8 @@ dependencies = [
   "pytest-cov",
   "respx",
   "cryptography>=3.1",
-  "pypdf"
+  "pypdf",
+  "Pillow"
 ]
 
 [tool.hatch.envs.test.scripts]

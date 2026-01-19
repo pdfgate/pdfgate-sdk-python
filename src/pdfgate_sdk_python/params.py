@@ -161,19 +161,19 @@ class FlattenPDFBaseParams(PDFGateParams):
     metadata: Optional[Any] = None
 
 
-class PDFFileParam(NamedTuple):
+class FileParam(NamedTuple):
     """Binary file payload for multipart PDF uploads."""
 
     name: str
     data: bytes
-    type: str = "application/pdf"
+    type: Optional[str] = None
 
 
 @dataclass
 class FlattenPDFByFileParams(FlattenPDFBaseParams):
     """Parameters for flattening a PDF provided as a file."""
 
-    file: Optional[PDFFileParam] = None
+    file: Optional[FileParam] = None
 
 
 @dataclass
@@ -197,7 +197,7 @@ class ExtractPDFFormDataByDocumentIdParams(PDFGateParams):
 class ExtractPDFFormDataByFileParams(PDFGateParams):
     """Parameters for extracting form data from a file."""
 
-    file: PDFFileParam
+    file: FileParam
 
 
 ExtractPDFFormDataParams = Union[
@@ -239,7 +239,7 @@ class ProtectPDFByDocumentIdParams(ProtectPDFBaseParams):
 class ProtectPDFByFileParams(ProtectPDFBaseParams):
     """Parameters for protecting a PDF provided as a file."""
 
-    file: Optional[PDFFileParam] = None
+    file: Optional[FileParam] = None
 
 
 ProtectPDFParams = Union[ProtectPDFByDocumentIdParams, ProtectPDFByFileParams]
@@ -266,7 +266,44 @@ class CompressPDFByDocumentIdParams(CompressPDFBaseParams):
 class CompressPDFByFileParams(CompressPDFBaseParams):
     """Parameters for compressing a PDF provided as a file."""
 
-    file: Optional[PDFFileParam] = None
+    file: Optional[FileParam] = None
 
 
 CompressPDFParams = Union[CompressPDFByDocumentIdParams, CompressPDFByFileParams]
+
+
+class WatermarkType(Enum):
+    TEXT = "text"
+    IMAGE = "image"
+
+
+@dataclass
+class WatermarkPDFBaseParams(PDFGateParams):
+    type: WatermarkType
+    text: Optional[str] = None
+    watermark: Optional[FileParam] = None
+    font: Optional[PdfStandardFont] = None
+    font_size: Optional[int] = None
+    font_color: Optional[str] = None
+    opacity: Optional[float] = None
+    x_position: Optional[int] = None
+    y_position: Optional[int] = None
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+    rotate: Optional[float] = None
+    json_response: Optional[bool] = False
+    pre_signed_url_expires_in: Optional[int] = None
+    metadata: Optional[Any] = None
+
+
+@dataclass
+class WatermarkPDFByDocumentIdParams(WatermarkPDFBaseParams):
+    document_id: Optional[str] = None
+
+
+@dataclass
+class WatermarkPDFByFileParams(WatermarkPDFBaseParams):
+    file: Optional[FileParam] = None
+
+
+WatermarkPDFParams = Union[WatermarkPDFByDocumentIdParams, WatermarkPDFByFileParams]

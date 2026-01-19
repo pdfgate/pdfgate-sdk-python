@@ -18,6 +18,7 @@ from .params import (
     GetDocumentParams,
     GetFileParams,
     ProtectPDFParams,
+    WatermarkPDFParams,
 )
 from .responses import PDFGateDocument
 
@@ -314,6 +315,60 @@ class PDFGate:
             returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         request = self.request_builder.build_compress_pdf(params)
+        response = await self.async_client.try_make_request_async(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
+
+        return result
+
+    def watermark_pdf(self, params: WatermarkPDFParams) -> Any:
+        """Apply a text or image watermark to a PDF.
+
+        Watermark configuration highlights:
+            - `type` is required: `"text"` or `"image"`.
+            - For text watermarks: `text` required when `type="text"`.
+            - For image watermarks: upload `watermark` image file (`.png`, `.jpg`, `.jpeg`).
+            - Optional: `font` (standard PDF fonts), `fontFile`
+            (`.ttf`/`.otf` overrides `font`), `fontSize`, `fontColor`,
+            `opacity` (0..1), `xPosition`, `yPosition`, `imageWidth`, `imageHeight`,
+            `rotate` (0..360).
+
+        Args:
+            params: Either a `WatermarkPDFByDocumentIdParams` or
+                `WatermarkPDFByFileParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
+        """
+        request = self.request_builder.build_watermark_pdf(params)
+        response = self.sync_client.try_make_request(request)
+        result = ResponseBuilder.build_response(response, json=params.json_response)
+
+        return result
+
+    async def watermark_pdf_async(self, params: WatermarkPDFParams) -> Any:
+        """Apply a text or image watermark to a PDF.
+
+        Watermark configuration highlights:
+            - `type` is required: `"text"` or `"image"`.
+            - For text watermarks: `text` required when `type="text"`.
+            - For image watermarks: upload `watermark` image file (`.png`, `.jpg`, `.jpeg`).
+            - Optional: `font` (standard PDF fonts), `fontFile`
+            (`.ttf`/`.otf` overrides `font`), `fontSize`, `fontColor`,
+            `opacity` (0..1), `xPosition`, `yPosition`, `imageWidth`, `imageHeight`,
+            `rotate` (0..360).
+
+        Args:
+            params: Either a `WatermarkPDFByDocumentIdParams` or
+                `WatermarkPDFByFileParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
+        """
+        request = self.request_builder.build_watermark_pdf(params)
         response = await self.async_client.try_make_request_async(request)
         result = ResponseBuilder.build_response(response, json=params.json_response)
 
