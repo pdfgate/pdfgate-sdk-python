@@ -1,3 +1,5 @@
+"""Request construction utilities for PDFGate API calls."""
+
 from dataclasses import asdict, dataclass
 from datetime import timedelta
 from enum import Enum
@@ -46,6 +48,7 @@ def get_domain_from_api_key(api_key: str) -> str:
 
 
 def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
+    """Convert a params dataclass into a JSON-ready dict."""
     params_dict = asdict(instance)
     params_without_nulls: dict[str, Any] = {}
     for k, v in params_dict.items():
@@ -59,6 +62,8 @@ def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
 
 @dataclass
 class PDFGateRequest:
+    """Container for an HTTP request and its timeout."""
+
     request: httpx.Request
     timeout: int = int(
         timedelta(seconds=Config.DEFAULT_TIMEOUT_SECONDS).total_seconds()
@@ -66,34 +71,42 @@ class PDFGateRequest:
 
 
 class RequestBuilder:
+    """Build HTTP requests for PDFGate endpoints."""
+
     def __init__(self, api_key: str):
         domain = get_domain_from_api_key(api_key)
         self.url_builder = URLBuilder(domain)
         self.api_key = api_key
 
     def get_headers(self) -> dict[str, str]:
+        """Return the authorization header for API calls."""
         return {"Authorization": f"Bearer {self.api_key}"}
 
     def _get_request(self, url: str, params: dict[str, Any] = {}) -> httpx.Request:
+        """Create a GET request with standard headers."""
         return httpx.Request("GET", url=url, headers=self.get_headers(), params=params)
 
     def _json_post_request(self, url: str, json: dict[str, Any]) -> httpx.Request:
+        """Create a JSON POST request with standard headers."""
         return httpx.Request("POST", url=url, headers=self.get_headers(), json=json)
 
     def _multipart_post_request(
         self, url: str, data: dict[str, Any] = {}, files: dict[str, Any] = {}
     ) -> httpx.Request:
+        """Create a multipart POST request with standard headers."""
         return httpx.Request(
             "POST", url=url, headers=self.get_headers(), data=data, files=files
         )
 
     def build_get_file(self, document_id: str) -> PDFGateRequest:
+        """Build a request to download a document's file content."""
         url = self.url_builder.get_file_url(document_id)
         request = self._get_request(url)
 
         return PDFGateRequest(request=request)
 
     def build_get_document(self, params: GetDocumentParams) -> PDFGateRequest:
+        """Build a request to fetch a document's metadata."""
         params_dict: dict[str, int] = {}
         if params.pre_signed_url_expires_in is not None:
             params_dict["preSignedUrlExpiresIn"] = params.pre_signed_url_expires_in
@@ -104,6 +117,7 @@ class RequestBuilder:
         return PDFGateRequest(request=request)
 
     def build_generate_pdf(self, params: GeneratePDFParams) -> PDFGateRequest:
+        """Build a request to generate a PDF from HTML or URL."""
         url = self.url_builder.generate_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
         request = self._json_post_request(url, json=params_without_nulls)
@@ -114,6 +128,7 @@ class RequestBuilder:
         return PDFGateRequest(request=request, timeout=timeout)
 
     def build_flatten_pdf(self, params: FlattenPDFParams) -> PDFGateRequest:
+        """Build a request to flatten a PDF from file or document ID."""
         url = self.url_builder.flatten_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
         if isinstance(params, FlattenPDFBinaryParams) and params.file is not None:
@@ -133,6 +148,7 @@ class RequestBuilder:
     def build_extract_pdf_form_data(
         self, params: ExtractPDFFormDataParams
     ) -> PDFGateRequest:
+        """Build a request to extract PDF form data."""
         url = self.url_builder.extract_pdf_form_data_url()
         if isinstance(params, ExtractPDFFormDataByDocumentIdParams):
             params_dict = {"documentId": params.document_id}
@@ -143,6 +159,7 @@ class RequestBuilder:
         return PDFGateRequest(request=request)
 
     def build_protect_pdf(self, params: ProtectPDFParams) -> PDFGateRequest:
+        """Build a request to encrypt a PDF from file or document ID."""
         url = self.url_builder.protect_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
         if isinstance(params, ProtectPDFByDocumentIdParams):
@@ -161,6 +178,7 @@ class RequestBuilder:
         return PDFGateRequest(request=request, timeout=timeout)
 
     def build_compress_pdf(self, params: CompressPDFParams) -> PDFGateRequest:
+        """Build a request to compress a PDF from file or document ID."""
         url = self.url_builder.compress_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
         if isinstance(params, CompressPDFByDocumentIdParams):

@@ -1,6 +1,9 @@
+"""Custom exception types for the PDFGate SDK."""
+
+
 class PDFGateError(Exception):
-    pass
+    """Base error for SDK failures."""
 
 
 class ParamsValidationError(PDFGateError):
-    pass
+    """Raised when required parameters are missing or invalid."""

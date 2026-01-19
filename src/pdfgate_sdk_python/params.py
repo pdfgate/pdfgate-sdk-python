@@ -1,9 +1,13 @@
+"""Parameter types and enums used by PDFGate API calls."""
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, NamedTuple, Optional, Union
 
 
 class PageSizeType(Enum):
+    """Supported page sizes for generated PDFs."""
+
     A0 = "a0"
     A1 = "a1"
     A2 = "a2"
@@ -18,16 +22,22 @@ class PageSizeType(Enum):
 
 
 class FileOrientation(Enum):
+    """Orientation options for generated PDFs."""
+
     PORTRAIT = "portrait"
     LANDSCAPE = "landscape"
 
 
 class EmulateMediaType(Enum):
+    """Media types for CSS emulation during rendering."""
+
     SCREEN = "screen"
     PRINT = "print"
 
 
 class PdfStandardFont(Enum):
+    """Standard built-in fonts supported by the renderer."""
+
     TIMES_ROMAN = "times-roman"
     TIMES_BOLD = "times-bold"
     TIMES_ITALIC = "times-italic"
@@ -44,6 +54,8 @@ class PdfStandardFont(Enum):
 
 @dataclass
 class PdfPageMargin:
+    """Margins to apply to a PDF page."""
+
     top: Optional[str] = None
     bottom: Optional[str] = None
     left: Optional[str] = None
@@ -52,33 +64,45 @@ class PdfPageMargin:
 
 @dataclass
 class ClickSelectorChain:
+    """Sequence of selectors to click in order."""
+
     selectors: list[str]
 
 
 @dataclass
 class ClickSelectorChainSetup:
+    """Configuration for click selector chains."""
+
     ignore_failing_chains: Optional[bool] = None
     chains: Optional[list["ClickSelectorChain"]] = None
 
 
 @dataclass
 class PDFGateParams:
+    """Marker base class for all parameter dataclasses."""
+
     pass
 
 
 @dataclass
 class GetDocumentParams(PDFGateParams):
+    """Parameters for fetching a document's metadata."""
+
     document_id: str
     pre_signed_url_expires_in: Optional[int] = None
 
 
 @dataclass
 class GetFileParams(PDFGateParams):
+    """Parameters for downloading a document's file content."""
+
     document_id: str
 
 
 @dataclass
 class GeneratePDFParams(PDFGateParams):
+    """Parameters for generating a PDF from HTML or a URL."""
+
     html: Optional[str] = None
     url: Optional[str] = None
     json_response: Optional[bool] = False
@@ -112,12 +136,16 @@ class GeneratePDFParams(PDFGateParams):
 
 @dataclass
 class FlattenPDFBaseParams(PDFGateParams):
+    """Common parameters for flattening PDFs."""
+
     json_response: Optional[bool] = False
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
 
 
 class PDFFileParam(NamedTuple):
+    """Binary file payload for multipart PDF uploads."""
+
     name: str
     data: bytes
     type: str = "application/pdf"
@@ -125,11 +153,15 @@ class PDFFileParam(NamedTuple):
 
 @dataclass
 class FlattenPDFBinaryParams(FlattenPDFBaseParams):
+    """Parameters for flattening a PDF provided as a file."""
+
     file: Optional[PDFFileParam] = None
 
 
 @dataclass
 class FlattenPDFDocumentParams(FlattenPDFBaseParams):
+    """Parameters for flattening a PDF by document ID."""
+
     document_id: Optional[str] = None
 
 
@@ -138,11 +170,15 @@ FlattenPDFParams = Union[FlattenPDFBinaryParams, FlattenPDFDocumentParams]
 
 @dataclass
 class ExtractPDFFormDataByDocumentIdParams(PDFGateParams):
+    """Parameters for extracting form data by document ID."""
+
     document_id: str
 
 
 @dataclass
 class ExtractPDFFormDataByFileParams(PDFGateParams):
+    """Parameters for extracting form data from a file."""
+
     file: PDFFileParam
 
 
@@ -152,12 +188,16 @@ ExtractPDFFormDataParams = Union[
 
 
 class EncryptionAlgorithm(Enum):
+    """Supported encryption algorithms."""
+
     AES_256 = "AES256"
     AES_128 = "AES128"
 
 
 @dataclass
 class ProtectPDFBaseParams(PDFGateParams):
+    """Common parameters for protecting PDFs."""
+
     algorithm: Optional[EncryptionAlgorithm] = None
     user_password: Optional[str] = None
     owner_password: Optional[str] = None
@@ -172,11 +212,15 @@ class ProtectPDFBaseParams(PDFGateParams):
 
 @dataclass
 class ProtectPDFByDocumentIdParams(ProtectPDFBaseParams):
+    """Parameters for protecting a PDF by document ID."""
+
     document_id: Optional[str] = None
 
 
 @dataclass
 class ProtectPDFByFileParams(ProtectPDFBaseParams):
+    """Parameters for protecting a PDF provided as a file."""
+
     file: Optional[PDFFileParam] = None
 
 
@@ -185,6 +229,8 @@ ProtectPDFParams = Union[ProtectPDFByDocumentIdParams, ProtectPDFByFileParams]
 
 @dataclass
 class CompressPDFBaseParams(PDFGateParams):
+    """Common parameters for compressing PDFs."""
+
     linearize: Optional[bool] = None
     json_response: Optional[bool] = False
     pre_signed_url_expires_in: Optional[int] = None
@@ -193,11 +239,15 @@ class CompressPDFBaseParams(PDFGateParams):
 
 @dataclass
 class CompressPDFByDocumentIdParams(CompressPDFBaseParams):
+    """Parameters for compressing a PDF by document ID."""
+
     document_id: Optional[str] = None
 
 
 @dataclass
 class CompressPDFByFileParams(CompressPDFBaseParams):
+    """Parameters for compressing a PDF provided as a file."""
+
     file: Optional[PDFFileParam] = None
 
 

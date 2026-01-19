@@ -1,3 +1,5 @@
+"""Key conversion helpers for camelCase and snake_case dictionaries."""
+
 import re
 from typing import Any, Union
 

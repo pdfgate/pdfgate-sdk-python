@@ -1,3 +1,5 @@
+"""HTTP client implementations for synchronous and asynchronous requests."""
+
 from typing import NoReturn
 import httpx
 
@@ -10,7 +12,7 @@ class PDFGateHTTPClientBase:
         self.api_key = api_key
 
     def get_headers(self) -> dict[str, str]:
-        """Return HTTP headers for API requests.
+        """Return the authorization HTTP headers for API requests.
 
         Returns:
             A dict of headers including the Authorization bearer token.
@@ -18,6 +20,7 @@ class PDFGateHTTPClientBase:
         return {"Authorization": f"Bearer {self.api_key}"}
 
     def raise_error_from_http_status_error(self, e: httpx.HTTPStatusError) -> NoReturn:
+        """Raise a PDFGateError with details from an HTTP status error."""
         status_code = e.response.status_code
         content_type = e.response.headers.get("Content-Type", "")
         message = e.response.text
@@ -34,10 +37,13 @@ class PDFGateHTTPClientBase:
 
 
 class PDFGateHTTPClientSync(PDFGateHTTPClientBase):
+    """Synchronous HTTP client for PDFGate API requests."""
+
     def __init__(self, api_key: str):
         super().__init__(api_key=api_key)
 
     def try_make_request(self, request: PDFGateRequest) -> httpx.Response:
+        """Send a request synchronously raising HTTP errors."""
         try:
             with httpx.Client(timeout=request.timeout) as client:
                 response = client.send(request.request)
@@ -51,10 +57,13 @@ class PDFGateHTTPClientSync(PDFGateHTTPClientBase):
 
 
 class PDFGateHTTPClientAsync(PDFGateHTTPClientBase):
+    """Asynchronous HTTP client for PDFGate API requests."""
+
     def __init__(self, api_key: str):
         super().__init__(api_key=api_key)
 
     async def try_make_request_async(self, request: PDFGateRequest) -> httpx.Response:
+        """Send a request asynchronously raising HTTP errors."""
         try:
             async with httpx.AsyncClient(timeout=request.timeout) as client:
                 response = await client.send(request.request)

@@ -1,8 +1,12 @@
+"""Configuration values for API domains and default timeouts."""
+
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class Config:
+    """Holds constant configuration values for the SDK."""
+
     PRODUCTION_API_DOMAIN: str = "https://api.pdfgate.com"
     SANDBOX_API_DOMAIN: str = "https://api-sandbox.pdfgate.com"
 

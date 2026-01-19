@@ -1,3 +1,5 @@
+"""Response models for PDFGate API results."""
+
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional, TypedDict
@@ -11,6 +13,8 @@ class DocumentStatus(Enum):
 
 
 class DocumentType(Enum):
+    """Document types reported by the PDFGate API."""
+
     FROM_HTML = "from_html"
     FLATTENED = "flattened"
     WATERMARKED = "watermarked"
@@ -20,6 +24,8 @@ class DocumentType(Enum):
 
 
 class PDFGateDocument(TypedDict, total=False):
+    """Typed dictionary representing a PDFGate document response."""
+
     id: str
     status: DocumentStatus
     created_at: datetime

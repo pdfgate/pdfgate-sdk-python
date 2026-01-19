@@ -30,6 +30,12 @@ class PDFGate:
             API key used for authentication.
         domain (str):
             Base API domain derived from the API key.
+        request_builder (RequestBuilder):
+            Builds HTTP requests for the API from parameter objects.
+        sync_client (PDFGateHTTPClientSync):
+            Synchronous HTTP client that handles HTTP errors.
+        async_client (PDFGateHTTPClientAsync):
+            Asynchronous HTTP client that handles HTTP errors.
     """
 
     def __init__(self, api_key: str):
@@ -47,24 +53,8 @@ class PDFGate:
         self.sync_client = PDFGateHTTPClientSync(api_key=api_key)
         self.async_client = PDFGateHTTPClientAsync(api_key=api_key)
 
-    def get_base_headers(self) -> dict[str, str]:
-        """Return HTTP headers for API requests.
-
-        Returns:
-            A dict of headers including the Authorization bearer token.
-        """
-        return {"Authorization": f"Bearer {self.api_key}"}
-
     def get_document(self, params: GetDocumentParams) -> PDFGateDocument:
-        """Retrieve a document from the PDFGate API.
-
-        Sends a GET request to the `/document/{document_id}` endpoint. If
-        `params.pre_signed_url_expires_in` is provided it will be sent as the
-        `preSignedUrlExpiresIn` query parameter.
-
-        Args:
-            params:
-                Parameters for the request, provided as a `GetDocumentParams` instance.
+        """Retrieve a stored document’s metadata (and optionally a fresh pre-signed download URL).
 
         Returns:
             A `PDFGateDocument` parsed from the JSON response.
@@ -83,15 +73,7 @@ class PDFGate:
         return result
 
     async def get_document_async(self, params: GetDocumentParams) -> PDFGateDocument:
-        """Retrieve a document from the PDFGate API.
-
-        Sends a GET request to the `/document/{document_id}` endpoint. If
-        `params.pre_signed_url_expires_in` is provided it will be sent as the
-        `preSignedUrlExpiresIn` query parameter.
-
-        Args:
-            params:
-                Parameters for the request, provided as a `GetDocumentParams` instance.
+        """Retrieve a stored document’s metadata (and optionally a fresh pre-signed download URL).
 
         Returns:
             A `PDFGateDocument` parsed from the JSON response.
@@ -112,6 +94,9 @@ class PDFGate:
     def get_file(self, params: GetFileParams) -> bytes:
         """Download a raw PDF file by its document ID.
 
+        Important: Accessing stored generated files requires enabling
+        “Save files” in the PDFGate Dashboard settings (disabled by default).
+
         Returns:
             The raw bytes of the file.
         """
@@ -123,6 +108,9 @@ class PDFGate:
     async def get_file_async(self, params: GetFileParams) -> bytes:
         """Download a raw PDF file by its document ID.
 
+        Important: Accessing stored generated files requires enabling
+        “Save files” in the PDFGate Dashboard settings (disabled by default).
+
         Returns:
             The raw bytes of the file.
         """
@@ -132,10 +120,10 @@ class PDFGate:
         return response.content
 
     def generate_pdf(self, params: GeneratePDFParams) -> Union[bytes, PDFGateDocument]:
-        """Generate a PDF document.
+        """Generate a PDF from a URL or raw HTML.
 
-        Depending on the `json_response` flag in `params`, this method either
-        returns the raw PDF bytes or a `PDFGateDocument` instance.
+        Returns:
+            Either the raw PDF bytes or a `PDFGateDocument` parsed from the JSON response.
         """
         if not params.html and not params.url:
             raise ParamsValidationError(
@@ -151,10 +139,10 @@ class PDFGate:
     async def generate_pdf_async(
         self, params: GeneratePDFParams
     ) -> Union[bytes, PDFGateDocument]:
-        """Generate a PDF document.
+        """Generate a PDF from a URL or raw HTML.
 
-        Depending on the `json_response` flag in `params`, this method either
-        returns the raw PDF bytes or a `PDFGateDocument` instance.
+        Returns:
+            Either the raw PDF bytes or a `PDFGateDocument` parsed from the JSON response.
         """
         if not params.html and not params.url:
             raise ParamsValidationError(
@@ -168,10 +156,16 @@ class PDFGate:
         return result
 
     def flatten_pdf(self, params: FlattenPDFParams) -> Union[bytes, PDFGateDocument]:
-        """Flatten a PDF document.
+        """Flatten an interactive PDF into a static, non-editable PDF.
 
-        Depending on the `json_response` flag in `params`, this method either
-        returns the raw PDF bytes or a `PDFGateDocument` instance.
+        Args:
+            params: Either a `FlattenPDFByDocumentIdParams` or
+                `FlattenPDFBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         request = self.request_builder.build_flatten_pdf(params)
         response = self.sync_client.try_make_request(request)
@@ -182,10 +176,16 @@ class PDFGate:
     async def flatten_pdf_async(
         self, params: FlattenPDFParams
     ) -> Union[bytes, PDFGateDocument]:
-        """Flatten a PDF document.
+        """Flatten an interactive PDF into a static, non-editable PDF.
 
-        Depending on the `json_response` flag in `params`, this method either
-        returns the raw PDF bytes or a `PDFGateDocument` instance.
+        Args:
+            params: Either a `FlattenPDFByDocumentIdParams` or
+                `FlattenPDFBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         request = self.request_builder.build_flatten_pdf(params)
         response = await self.async_client.try_make_request_async(request)
@@ -194,6 +194,16 @@ class PDFGate:
         return result
 
     def extract_pdf_form_data(self, params: ExtractPDFFormDataParams) -> Any:
+        """Extract form field data from a fillable PDF and return it as JSON.
+
+        Args:
+            params: Either a `ExtractPDFFormDataByDocumentIdParams` or
+                `ExtractPDFFormDataBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            JSON object mapping form field names to their values.
+        """
         request = self.request_builder.build_extract_pdf_form_data(params)
         response = self.sync_client.try_make_request(request)
         result = ResponseBuilder.build_response(response, json=True)
@@ -203,6 +213,16 @@ class PDFGate:
     async def extract_pdf_form_data_async(
         self, params: ExtractPDFFormDataParams
     ) -> Any:
+        """Extract form field data from a fillable PDF and return it as JSON.
+
+        Args:
+            params: Either a `ExtractPDFFormDataByDocumentIdParams` or
+                `ExtractPDFFormDataBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            JSON object mapping form field names to their values.
+        """
         request = self.request_builder.build_extract_pdf_form_data(params)
         response = await self.async_client.try_make_request_async(request)
         result = ResponseBuilder.build_response(response, json=True)
@@ -210,16 +230,23 @@ class PDFGate:
         return result
 
     def protect_pdf(self, params: ProtectPDFParams) -> Union[bytes, PDFGateDocument]:
-        """Protect a PDF document by applying encryption.
+        """Protect a PDF using encryption + optional permission restrictions.
 
-        Sends a POST request to the `/document/protect` endpoint.
+        Security options highlights:
+            - `algorithm`: `"AES256"` (default) or `"AES128"`.
+            - `user_password`: password required to open the PDF (optional).
+            - `owner_password`: full control password; required in some cases (e.g., AES256 with `user_password`).
+            - Restrictions: `disable_print`, `disable_copy`, `disable_editing`.
+            - `encrypt_metadata`: whether PDF metadata is encrypted (default `False`).
 
         Args:
-            params:
-                Parameters for the request, provided as a `ProtectPDFByDocumentIdParams` instance.
+            params: Either a `ProtectPDFByDocumentIdParams` or
+                `ProtectPDFBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
 
         Returns:
-            A `PDFGateDocument` parsed from the JSON response.
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         request = self.request_builder.build_protect_pdf(params)
         response = self.sync_client.try_make_request(request)
@@ -230,16 +257,23 @@ class PDFGate:
     async def protect_pdf_async(
         self, params: ProtectPDFParams
     ) -> Union[bytes, PDFGateDocument]:
-        """Protect a PDF document by applying encryption.
+        """Protect a PDF using encryption + optional permission restrictions.
 
-        Sends a POST request to the `/document/protect` endpoint.
+        Security options highlights:
+            - `algorithm`: `"AES256"` (default) or `"AES128"`.
+            - `user_password`: password required to open the PDF (optional).
+            - `owner_password`: full control password; required in some cases (e.g., AES256 with `user_password`).
+            - Restrictions: `disable_print`, `disable_copy`, `disable_editing`.
+            - `encrypt_metadata`: whether PDF metadata is encrypted (default `False`).
 
         Args:
-            params:
-                Parameters for the request, provided as a `ProtectPDFByDocumentIdParams` instance.
+            params: Either a `ProtectPDFByDocumentIdParams` or
+                `ProtectPDFBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
 
         Returns:
-            A `PDFGateDocument` parsed from the JSON response.
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
         """
         request = self.request_builder.build_protect_pdf(params)
         response = await self.async_client.try_make_request_async(request)
@@ -248,7 +282,17 @@ class PDFGate:
         return result
 
     def compress_pdf(self, params: CompressPDFParams) -> Union[bytes, PDFGateDocument]:
-        """Compress a PDF document to reduce its size without changing its visual content."""
+        """Compress a PDF document to reduce its size without changing its visual content.
+
+        Args:
+            params: Either a `CompressPDFByDocumentIdParams` or
+                `CompressPDFBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
+        """
         request = self.request_builder.build_compress_pdf(params)
         response = self.sync_client.try_make_request(request)
         result = ResponseBuilder.build_response(response, json=params.json_response)
@@ -258,7 +302,17 @@ class PDFGate:
     async def compress_pdf_async(
         self, params: CompressPDFParams
     ) -> Union[bytes, PDFGateDocument]:
-        """Compress a PDF document to reduce its size without changing its visual content."""
+        """Compress a PDF document to reduce its size without changing its visual content.
+
+        Args:
+            params: Either a `CompressPDFByDocumentIdParams` or
+                `CompressPDFBinaryParams` instance depending on whether the file
+                is provided as a document ID or raw binary data.
+
+        Returns:
+            Depending on the `json_response` flag in `params`, this method either
+            returns the raw PDF bytes or a `PDFGateDocument` instance.
+        """
         request = self.request_builder.build_compress_pdf(params)
         response = await self.async_client.try_make_request_async(request)
         result = ResponseBuilder.build_response(response, json=params.json_response)
