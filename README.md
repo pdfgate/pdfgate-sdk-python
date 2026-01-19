@@ -112,7 +112,12 @@ response = client.compress_pdf(compress_pdf_params)
 ## Watermark a PDF
 
 ```python
-
+watermark_pdf_params = WatermarkPDFByFileParams(
+    file=FileParam(name="input.pdf", data=pdf_file),
+    type=WatermarkType.IMAGE,
+    watermark=FileParam(name="watermark.jpg", data=jpg_file),
+)
+watermarked_pdf = cast(PDFGateDocument, client.watermark_pdf(watermark_pdf_params))
 ```
 
 ## Protect (encrypt) a PDF
