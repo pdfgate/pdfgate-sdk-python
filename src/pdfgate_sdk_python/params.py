@@ -152,20 +152,20 @@ class PDFFileParam(NamedTuple):
 
 
 @dataclass
-class FlattenPDFBinaryParams(FlattenPDFBaseParams):
+class FlattenPDFByFileParams(FlattenPDFBaseParams):
     """Parameters for flattening a PDF provided as a file."""
 
     file: Optional[PDFFileParam] = None
 
 
 @dataclass
-class FlattenPDFDocumentParams(FlattenPDFBaseParams):
+class FlattenPDFByDocumentIdParams(FlattenPDFBaseParams):
     """Parameters for flattening a PDF by document ID."""
 
     document_id: Optional[str] = None
 
 
-FlattenPDFParams = Union[FlattenPDFBinaryParams, FlattenPDFDocumentParams]
+FlattenPDFParams = Union[FlattenPDFByFileParams, FlattenPDFByDocumentIdParams]
 
 
 @dataclass

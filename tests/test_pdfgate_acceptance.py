@@ -12,8 +12,8 @@ from pdfgate_sdk_python.params import (
     CompressPDFByFileParams,
     ExtractPDFFormDataByDocumentIdParams,
     ExtractPDFFormDataByFileParams,
-    FlattenPDFBinaryParams,
-    FlattenPDFDocumentParams,
+    FlattenPDFByFileParams,
+    FlattenPDFByDocumentIdParams,
     GeneratePDFParams,
     GetDocumentParams,
     GetFileParams,
@@ -158,7 +158,7 @@ async def test_get_document_async(client: PDFGate, document_id: str) -> None:
 
 
 def test_flatten_pdf_by_document_id(client: PDFGate, document_id: str) -> None:
-    flatten_pdf_params = FlattenPDFDocumentParams(
+    flatten_pdf_params = FlattenPDFByDocumentIdParams(
         document_id=document_id, json_response=True
     )
     flattened_document = client.flatten_pdf(flatten_pdf_params)
@@ -172,7 +172,7 @@ def test_flatten_pdf_by_document_id(client: PDFGate, document_id: str) -> None:
 
 def test_flatten_pdf_by_file(client: PDFGate, pdf_file: bytes) -> None:
     file_param = PDFFileParam(name="input.pdf", data=pdf_file)
-    flatten_pdf_params = FlattenPDFBinaryParams(file=file_param, json_response=True)
+    flatten_pdf_params = FlattenPDFByFileParams(file=file_param, json_response=True)
     flattened_document = client.flatten_pdf(flatten_pdf_params)
 
     assert isinstance(flattened_document, dict)
@@ -184,7 +184,7 @@ def test_flatten_pdf_by_file(client: PDFGate, pdf_file: bytes) -> None:
 @pytest.mark.asyncio
 async def test_flatten_pdf_async_by_file(client: PDFGate, pdf_file: bytes) -> None:
     file_param = PDFFileParam(name="input.pdf", data=pdf_file)
-    flatten_pdf_params = FlattenPDFBinaryParams(file=file_param, json_response=True)
+    flatten_pdf_params = FlattenPDFByFileParams(file=file_param, json_response=True)
     flattened_document = await client.flatten_pdf_async(flatten_pdf_params)
 
     assert isinstance(flattened_document, dict)

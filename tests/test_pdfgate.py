@@ -5,12 +5,12 @@ import uuid
 import httpx
 import pytest
 import respx
-from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN
+from pdfgate_sdk_python.config import Config
 from pdfgate_sdk_python.errors import PDFGateError, ParamsValidationError
 from pdfgate_sdk_python.http_client import PDFGateHTTPClientSync
 from pdfgate_sdk_python.params import (
-    FlattenPDFBinaryParams,
-    FlattenPDFDocumentParams,
+    FlattenPDFByFileParams,
+    FlattenPDFByDocumentIdParams,
     GeneratePDFParams,
     GetDocumentParams,
     PDFFileParam,
@@ -25,7 +25,7 @@ from pdfgate_sdk_python.url_builder import URLBuilder
 class TestURLBuilder:
     @staticmethod
     def random_file_url() -> str:
-        return f"{PRODUCTION_API_DOMAIN}/file/open/{str(uuid.uuid4())}"
+        return f"{Config.PRODUCTION_API_DOMAIN}/file/open/{str(uuid.uuid4())}"
 
 
 class DocumentResponse(TypedDict):
@@ -47,7 +47,7 @@ def api_key() -> str:
 
 @pytest.fixture(scope="module")
 def url_builder() -> URLBuilder:
-    return URLBuilder(PRODUCTION_API_DOMAIN)
+    return URLBuilder(Config.PRODUCTION_API_DOMAIN)
 
 
 @pytest.fixture
@@ -218,7 +218,7 @@ def test_flatten_pdf_by_document_id_returns_json_when_json_reponse_true(
     url = url_builder.flatten_pdf_url()
     route = respx_mock.post(url)
     route.mock(return_value=httpx.Response(201, json=flattened_document_response))
-    params = FlattenPDFDocumentParams(document_id=document_id, json_response=True)
+    params = FlattenPDFByDocumentIdParams(document_id=document_id, json_response=True)
 
     response = client.flatten_pdf(params)
 
@@ -241,7 +241,7 @@ def test_flatten_pdf_by_file_returns_bytes_when_json_reponse_false(
             headers={"Content-Type": "application/octet-stream"},
         )
     )
-    params = FlattenPDFBinaryParams(
+    params = FlattenPDFByFileParams(
         file=PDFFileParam(
             name="input.pdf",
             data=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",

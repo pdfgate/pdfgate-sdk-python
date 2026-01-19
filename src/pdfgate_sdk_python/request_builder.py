@@ -13,7 +13,7 @@ from pdfgate_sdk_python.params import (
     CompressPDFParams,
     ExtractPDFFormDataByDocumentIdParams,
     ExtractPDFFormDataParams,
-    FlattenPDFBinaryParams,
+    FlattenPDFByFileParams,
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
@@ -131,7 +131,7 @@ class RequestBuilder:
         """Build a request to flatten a PDF from file or document ID."""
         url = self.url_builder.flatten_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
-        if isinstance(params, FlattenPDFBinaryParams) and params.file is not None:
+        if isinstance(params, FlattenPDFByFileParams) and params.file is not None:
             files = {"file": params_without_nulls.pop("file")}
         else:
             files = {}
