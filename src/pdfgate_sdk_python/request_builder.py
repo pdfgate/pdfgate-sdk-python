@@ -3,7 +3,7 @@ from datetime import timedelta
 from enum import Enum
 from typing import Any
 import httpx
-from pdfgate_sdk_python.constants import PRODUCTION_API_DOMAIN, SANDBOX_API_DOMAIN
+from pdfgate_sdk_python.config import Config
 from pdfgate_sdk_python.dict_keys_converter import snake_to_camel
 from pdfgate_sdk_python.errors import PDFGateError
 from pdfgate_sdk_python.params import (
@@ -36,9 +36,9 @@ def get_domain_from_api_key(api_key: str) -> str:
         PDFGateError: If the API key format is invalid.
     """
     if api_key.startswith("live_"):
-        return PRODUCTION_API_DOMAIN
+        return Config.PRODUCTION_API_DOMAIN
     elif api_key.startswith("test_"):
-        return SANDBOX_API_DOMAIN
+        return Config.SANDBOX_API_DOMAIN
     else:
         raise PDFGateError(
             "Invalid API key format. Expected to start with 'live_' or 'test_'."
@@ -60,7 +60,9 @@ def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
 @dataclass
 class PDFGateRequest:
     request: httpx.Request
-    timeout: int = int(timedelta(seconds=60).total_seconds())
+    timeout: int = int(
+        timedelta(seconds=Config.DEFAULT_TIMEOUT_SECONDS).total_seconds()
+    )
 
 
 class RequestBuilder:
@@ -105,7 +107,9 @@ class RequestBuilder:
         url = self.url_builder.generate_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
         request = self._json_post_request(url, json=params_without_nulls)
-        timeout = int(timedelta(minutes=15).total_seconds())
+        timeout = int(
+            timedelta(minutes=Config.GENERATE_PDF_TIMEOUT_MINUTES).total_seconds()
+        )
 
         return PDFGateRequest(request=request, timeout=timeout)
 
@@ -120,7 +124,9 @@ class RequestBuilder:
         request = self._multipart_post_request(
             url, data=params_without_nulls, files=files
         )
-        timeout = int(timedelta(minutes=3).total_seconds())
+        timeout = int(
+            timedelta(minutes=Config.FLATTEN_PDF_TIMEOUT_MINUTES).total_seconds()
+        )
 
         return PDFGateRequest(request=request, timeout=timeout)
 
@@ -148,7 +154,9 @@ class RequestBuilder:
                 data=params_without_nulls,
                 files=file_param,
             )
-        timeout = int(timedelta(minutes=3).total_seconds())
+        timeout = int(
+            timedelta(minutes=Config.PROTECT_PDF_TIMEOUT_MINUTES).total_seconds()
+        )
 
         return PDFGateRequest(request=request, timeout=timeout)
 
@@ -164,6 +172,8 @@ class RequestBuilder:
                 data=params_without_nulls,
                 files=file_param,
             )
-        timeout = int(timedelta(minutes=3).total_seconds())
+        timeout = int(
+            timedelta(minutes=Config.COMPRESS_PDF_TIMEOUT_MINUTES).total_seconds()
+        )
 
         return PDFGateRequest(request=request, timeout=timeout)
