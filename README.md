@@ -148,24 +148,60 @@ response = cast(dict[str, Any], client.extract_pdf_form_data(extract_form_params
 
 # Development
 
-Hatch is used as a build system and for dependency management.
+Before doing anything, install [pre-commit](https://pre-commit.com/) by running:
 
-Run tests:
+```sh
+hatch run dev:pre-commit install
+```
 
+This will run several checks every time you try to `git commit` including:
+
+- linting and formatting with `Ruff`
+- type checking with `mypy`
+
+If you are on VS Code, it's recommended to install the `Ruff` extension so you'll get formatting on the fly.
+
+Hatch is used as a build system and for dependency management, so all main actions are configured to be run with Hatch.
+
+## Tests
+
+Unit tests:
 ```sh
 hatch run test:test
 ```
 
-Run Ruff to run linting and formatting:
+Acceptance tests hit the PDFGate API so they are slower, and require an API key that is expected to be set as an env var named `PDFGATE_API_KEY`. You can set it on your Bash/zsh/fish profile or inline as in:
 
+```sh
+PDFGATE_API_KEY="test_123" hatch run test:test_acceptance
+```
+
+## Manually run Ruff
+
+Linting:
 ```sh
 hatch run dev:lint
 ```
 
-Run mypy for type checking:
+Formatting:
+```sh
+hatch run dev:ruff format .
+```
+
+## Type checking
+
+Manually mypy for type checking:
 
 ```sh
 hatch run dev:check
+```
+
+## Docs
+
+Docs are build using [MkDocs](https://www.mkdocs.org/), they live in the `docs/` folder, and in the code. If you make any changes, and would like to see them live before publishing them, spin up a server locally with:
+
+```sh
+hatch run docs:serve
 ```
 
 # Support
