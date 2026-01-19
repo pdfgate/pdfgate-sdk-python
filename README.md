@@ -33,6 +33,20 @@ with open("output.pdf", "wb") as f:
   f.write(pdf)
 ```
 
+# Sync & Async
+
+There are sync and async versions of all methods, the only difference is that the method name has an `async` suffix:
+
+```python
+document_response = client.get_document(GetDocumentParams(document_id=document_id))
+
+# VS
+
+document_response = await client.get_document_async(GetDocumentParams(document_id=document_id))
+```
+
+Other than that, nothing changes and the interfaces are the same.
+
 # Responses
 
 The two response types for most endpoints are either the raw bytes of the
