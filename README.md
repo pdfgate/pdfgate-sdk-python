@@ -7,7 +7,7 @@ PDFGate lets you generate, process, and secure PDFs via a simple API:
 - Flatten, compress, watermark, protect PDFs
 - Extract PDF form data
 
-📘 Documentation: https://pdfgate.com/documentation
+📘 Documentation: https://pdfgate.com/documentation<br>
 🔑 Dashboard & API keys: https://dashboard.pdfgate.com
 
 # Installation
@@ -206,5 +206,5 @@ hatch run docs:serve
 
 # Support
 
-📧 Email: support@pdfgate.com
+📧 Email: support@pdfgate.com<br>
 📘 Docs: https://pdfgate.com/documentation
