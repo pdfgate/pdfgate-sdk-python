@@ -209,6 +209,12 @@ Docs are build using [MkDocs](https://www.mkdocs.org/), they live in the `docs/`
 hatch run docs:serve
 ```
 
+Changes to `docs/**` and `mkdocs.yml` trigger a new deployment of the docs site. If you change the code's documentation and want to manually update the docs site you can do it from the _Actions_ tab of the repo or by running:
+
+```sh
+hatch run docs:mkdocs gh-deploy
+```
+
 # Support
 
 📧 Email: support@pdfgate.com<br>
