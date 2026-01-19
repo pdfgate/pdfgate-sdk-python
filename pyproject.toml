@@ -7,7 +7,7 @@ name = "pdfgate-sdk-python"
 dynamic = ["version"]
 description = "PDFGate's official Python SDK"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = "MIT"
 keywords = []
 authors = [
@@ -36,6 +36,9 @@ Source = "https://github.com/pdfgate/pdfgate-sdk-python"
 
 [tool.hatch.version]
 path = "src/pdfgate_sdk_python/__about__.py"
+
+[tool.hatch.envs.default]
+python = "3.9"
 
 [tool.hatch.envs.dev]
 dependencies = [
