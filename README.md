@@ -10,6 +10,23 @@ PDFGate lets you generate, process, and secure PDFs via a simple API:
 📘 Documentation: https://pdfgate.com/documentation<br>
 🔑 Dashboard & API keys: https://dashboard.pdfgate.com
 
+## pdfgate-sdk-python
+
+[![PyPI - Version](https://img.shields.io/pypi/v/pdfgate-sdk-python.svg)](https://pypi.org/project/pdfgate-sdk-python)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pdfgate-sdk-python.svg)](https://pypi.org/project/pdfgate-sdk-python)
+
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Sync & Async](#sync--async)
+- [Responses](#responses)
+- [Examples](#examples)
+- [Development](#development)
+- [Support](#support)
+- [License](#license)
+
 # Installation
 
 ```sh
@@ -219,3 +236,7 @@ hatch run docs:mkdocs gh-deploy
 
 📧 Email: support@pdfgate.com<br>
 📘 Docs: https://pdfgate.com/documentation
+
+## License
+
+`pdfgate-sdk-python` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
