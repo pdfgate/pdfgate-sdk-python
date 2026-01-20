@@ -1,5 +1,5 @@
 from typing import Any
-from pdfgate_sdk_python.dict_keys_converter import (
+from pdfgate.dict_keys_converter import (
     camel_to_snake,
     convert_camel_keys_to_snake,
     convert_snake_keys_to_camel,

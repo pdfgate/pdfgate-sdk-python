@@ -5,21 +5,21 @@ import uuid
 import httpx
 import pytest
 import respx
-from pdfgate_sdk_python.config import Config
-from pdfgate_sdk_python.errors import PDFGateError, ParamsValidationError
-from pdfgate_sdk_python.http_client import PDFGateHTTPClientSync
-from pdfgate_sdk_python.params import (
+from pdfgate.config import Config
+from pdfgate.errors import PDFGateError, ParamsValidationError
+from pdfgate.http_client import PDFGateHTTPClientSync
+from pdfgate.params import (
     FlattenPDFByFileParams,
     FlattenPDFByDocumentIdParams,
     GeneratePDFParams,
     GetDocumentParams,
     FileParam,
 )
-from pdfgate_sdk_python.pdfgate import PDFGate
+from pdfgate.pdfgate import PDFGate
 
-from pdfgate_sdk_python.request_builder import PDFGateRequest
-from pdfgate_sdk_python.responses import DocumentStatus
-from pdfgate_sdk_python.url_builder import URLBuilder
+from pdfgate.request_builder import PDFGateRequest
+from pdfgate.responses import DocumentStatus
+from pdfgate.url_builder import URLBuilder
 
 
 class TestURLBuilder:

@@ -1,13 +1,13 @@
-"""pdfgate_sdk_python.pdfgate
+"""pdfgate.pdfgate
 
 Client for interacting with the PDFGate API.
 """
 
 from typing import Any, Union, cast
 
-from pdfgate_sdk_python.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
-from pdfgate_sdk_python.request_builder import RequestBuilder, get_domain_from_api_key
-from pdfgate_sdk_python.response_builder import ResponseBuilder
+from pdfgate.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
+from pdfgate.request_builder import RequestBuilder, get_domain_from_api_key
+from pdfgate.response_builder import ResponseBuilder
 
 from .errors import ParamsValidationError
 from .params import (

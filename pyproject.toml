@@ -35,7 +35,7 @@ Issues = "https://github.com/pdfgate/pdfgate-sdk-python/issues"
 Source = "https://github.com/pdfgate/pdfgate-sdk-python"
 
 [tool.hatch.version]
-path = "src/pdfgate_sdk_python/__about__.py"
+path = "src/pdfgate/__about__.py"
 
 [tool.hatch.envs.default]
 python = "3.9"
@@ -52,7 +52,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.dev.scripts]
-check = "mypy --install-types --non-interactive {args:src/pdfgate_sdk_python tests}"
+check = "mypy --install-types --non-interactive {args:src/pdfgate tests}"
 lint = "ruff check ."
 
 [tool.hatch.envs.test]

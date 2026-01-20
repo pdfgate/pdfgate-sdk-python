@@ -3,8 +3,8 @@
 from typing import NoReturn
 import httpx
 
-from pdfgate_sdk_python.errors import PDFGateError
-from pdfgate_sdk_python.request_builder import PDFGateRequest
+from pdfgate.errors import PDFGateError
+from pdfgate.request_builder import PDFGateRequest
 
 
 class PDFGateHTTPClientBase:

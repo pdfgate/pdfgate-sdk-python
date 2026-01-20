@@ -8,7 +8,7 @@ from PIL import Image
 
 import pytest
 import pypdf
-from pdfgate_sdk_python.params import (
+from pdfgate.params import (
     CompressPDFByDocumentIdParams,
     CompressPDFByFileParams,
     ExtractPDFFormDataByDocumentIdParams,
@@ -29,8 +29,8 @@ from pdfgate_sdk_python.params import (
     WatermarkPDFByFileParams,
     WatermarkType,
 )
-from pdfgate_sdk_python.pdfgate import PDFGate
-from pdfgate_sdk_python.responses import PDFGateDocument
+from pdfgate.pdfgate import PDFGate
+from pdfgate.responses import PDFGateDocument
 
 
 @pytest.fixture(scope="module")

@@ -1,4 +1,4 @@
-"""Package metadata for pdfgate_sdk_python."""
+"""Package metadata for pdfgate."""
 
 # SPDX-FileCopyrightText: 2026-present Fernando Gasperi <fgasperijabalera@gmail.com>
 #

@@ -6,10 +6,10 @@ from enum import Enum
 import mimetypes
 from typing import Any
 import httpx
-from pdfgate_sdk_python.config import Config
-from pdfgate_sdk_python.dict_keys_converter import snake_to_camel
-from pdfgate_sdk_python.errors import PDFGateError
-from pdfgate_sdk_python.params import (
+from pdfgate.config import Config
+from pdfgate.dict_keys_converter import snake_to_camel
+from pdfgate.errors import PDFGateError
+from pdfgate.params import (
     CompressPDFByDocumentIdParams,
     CompressPDFParams,
     ExtractPDFFormDataByDocumentIdParams,
@@ -26,7 +26,7 @@ from pdfgate_sdk_python.params import (
     WatermarkPDFParams,
     WatermarkType,
 )
-from pdfgate_sdk_python.url_builder import URLBuilder
+from pdfgate.url_builder import URLBuilder
 
 FormDataFileParam = tuple[str, bytes, str]
 

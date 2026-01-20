@@ -4,8 +4,8 @@ from typing import Optional, Union, cast
 
 import httpx
 
-from pdfgate_sdk_python.dict_keys_converter import convert_camel_keys_to_snake
-from pdfgate_sdk_python.responses import PDFGateDocument
+from pdfgate.dict_keys_converter import convert_camel_keys_to_snake
+from pdfgate.responses import PDFGateDocument
 
 
 class ResponseBuilder:
