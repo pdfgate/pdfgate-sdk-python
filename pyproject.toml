@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pdfgate-sdk-python"
+name = "pdfgate"
 dynamic = ["version"]
 description = "PDFGate's official Python SDK"
 readme = "README.md"
