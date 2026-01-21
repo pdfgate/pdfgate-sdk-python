@@ -1,3 +1,13 @@
 # Welcome to PDFGate's Python SDK
 
-For full documentation of the underlying PDFGate API visit [pdfgate.com](https://pdfgate.com/documentation).
+PDFGate lets you generate, process, and secure PDFs via a simple API:
+
+- HTML or URL to PDF
+- Fillable forms
+- Flatten, compress, watermark, protect PDFs
+- Extract PDF form data
+
+You can find further details on:
+
+📘 [API Documentation](https://pdfgate.com/documentation)<br>
+🔑 [Dashboard & API keys](https://dashboard.pdfgate.com)
