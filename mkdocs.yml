@@ -4,6 +4,9 @@ theme:
   name: "material"
   logo: "assets/images/logo.svg"
 
+extra:
+  generator: false
+
 copyright: Copyright &copy; 2026 PDFGate.com
 
 plugins:
