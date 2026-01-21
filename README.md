@@ -38,8 +38,7 @@ pip install pdfgate
 ```python
 import os
 
-import pdfgate
-import GeneratePDFParams
+from pdfgate import PDFGate, GeneratePDFParams
 
 
 client = PDFGate(api_key=os.getenv("PDFGATE_API_KEY"))
