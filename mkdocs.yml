@@ -1,7 +1,10 @@
-site_name: PDFGate Python SDK Documentation
+site_name: Python SDK Documentation
 
 theme:
   name: "material"
+  logo: "assets/images/logo.svg"
+
+copyright: Copyright &copy; 2026 PDFGate.com
 
 plugins:
   - mkdocstrings:
@@ -10,4 +13,6 @@ plugins:
           paths: [src]
 
 nav:
-  - reference.md
+  - Home: index.md
+  - Getting Started: getting_started.md
+  - API Reference: reference.md

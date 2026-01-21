@@ -1,8 +1,3 @@
-"""pdfgate.pdfgate
-
-Client for interacting with the PDFGate API.
-"""
-
 from typing import Any, Union, cast
 
 from pdfgate.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
