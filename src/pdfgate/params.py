@@ -140,7 +140,6 @@ class GeneratePDFParams(PDFGateParams):
     click_selector: Optional[str] = None
     click_selector_chain_setup: Optional[ClickSelectorChainSetup] = None
     wait_for_network_idle: Optional[bool] = None
-    grayscale: Optional[bool] = None
     enable_form_fields: Optional[bool] = None
     delay: Optional[int] = None
     load_images: Optional[bool] = None
