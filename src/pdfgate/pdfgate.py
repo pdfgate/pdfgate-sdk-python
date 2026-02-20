@@ -1,4 +1,4 @@
-from typing import Any, Union, cast
+from typing import Any
 
 from pdfgate.http_client import PDFGateHTTPClientAsync, PDFGateHTTPClientSync
 from pdfgate.request_builder import RequestBuilder, get_domain_from_api_key
@@ -62,9 +62,7 @@ class PDFGate:
         """
         request = self.request_builder.build_get_document(params)
         response = self.sync_client.try_make_request(request)
-        result = cast(
-            PDFGateDocument, ResponseBuilder.build_response(response, json=True)
-        )
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
@@ -81,9 +79,7 @@ class PDFGate:
         """
         request = self.request_builder.build_get_document(params)
         response = await self.async_client.try_make_request_async(request)
-        result = cast(
-            PDFGateDocument, ResponseBuilder.build_response(response, json=True)
-        )
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
@@ -115,11 +111,11 @@ class PDFGate:
 
         return response.content
 
-    def generate_pdf(self, params: GeneratePDFParams) -> Union[bytes, PDFGateDocument]:
+    def generate_pdf(self, params: GeneratePDFParams) -> PDFGateDocument:
         """Generate a PDF from a URL or raw HTML.
 
         Returns:
-            Either the raw PDF bytes or a `PDFGateDocument` parsed from the JSON response.
+            A `PDFGateDocument` parsed from the JSON response.
         """
         if not params.html and not params.url:
             raise ParamsValidationError(
@@ -128,17 +124,15 @@ class PDFGate:
 
         request = self.request_builder.build_generate_pdf(params)
         response = self.sync_client.try_make_request(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    async def generate_pdf_async(
-        self, params: GeneratePDFParams
-    ) -> Union[bytes, PDFGateDocument]:
+    async def generate_pdf_async(self, params: GeneratePDFParams) -> PDFGateDocument:
         """Generate a PDF from a URL or raw HTML.
 
         Returns:
-            Either the raw PDF bytes or a `PDFGateDocument` parsed from the JSON response.
+            A `PDFGateDocument` parsed from the JSON response.
         """
         if not params.html and not params.url:
             raise ParamsValidationError(
@@ -147,45 +141,37 @@ class PDFGate:
 
         request = self.request_builder.build_generate_pdf(params)
         response = await self.async_client.try_make_request_async(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    def flatten_pdf(self, params: FlattenPDFParams) -> Union[bytes, PDFGateDocument]:
+    def flatten_pdf(self, params: FlattenPDFParams) -> PDFGateDocument:
         """Flatten an interactive PDF into a static, non-editable PDF.
 
         Args:
-            params: Either a `FlattenPDFByDocumentIdParams` or
-                `FlattenPDFBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `FlattenPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_flatten_pdf(params)
         response = self.sync_client.try_make_request(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    async def flatten_pdf_async(
-        self, params: FlattenPDFParams
-    ) -> Union[bytes, PDFGateDocument]:
+    async def flatten_pdf_async(self, params: FlattenPDFParams) -> PDFGateDocument:
         """Flatten an interactive PDF into a static, non-editable PDF.
 
         Args:
-            params: Either a `FlattenPDFByDocumentIdParams` or
-                `FlattenPDFBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `FlattenPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_flatten_pdf(params)
         response = await self.async_client.try_make_request_async(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
@@ -193,16 +179,14 @@ class PDFGate:
         """Extract form field data from a fillable PDF and return it as JSON.
 
         Args:
-            params: Either a `ExtractPDFFormDataByDocumentIdParams` or
-                `ExtractPDFFormDataBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `ExtractPDFFormDataParams` instance.
 
         Returns:
             JSON object mapping form field names to their values.
         """
         request = self.request_builder.build_extract_pdf_form_data(params)
         response = self.sync_client.try_make_request(request)
-        result = ResponseBuilder.build_response(response, json=True)
+        result = ResponseBuilder.build_json_response(response)
 
         return result
 
@@ -212,20 +196,18 @@ class PDFGate:
         """Extract form field data from a fillable PDF and return it as JSON.
 
         Args:
-            params: Either a `ExtractPDFFormDataByDocumentIdParams` or
-                `ExtractPDFFormDataBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `ExtractPDFFormDataParams` instance.
 
         Returns:
             JSON object mapping form field names to their values.
         """
         request = self.request_builder.build_extract_pdf_form_data(params)
         response = await self.async_client.try_make_request_async(request)
-        result = ResponseBuilder.build_response(response, json=True)
+        result = ResponseBuilder.build_json_response(response)
 
         return result
 
-    def protect_pdf(self, params: ProtectPDFParams) -> Union[bytes, PDFGateDocument]:
+    def protect_pdf(self, params: ProtectPDFParams) -> PDFGateDocument:
         """Protect a PDF using encryption + optional permission restrictions.
 
         Security options highlights:
@@ -236,23 +218,18 @@ class PDFGate:
             - `encrypt_metadata`: whether PDF metadata is encrypted (default `False`).
 
         Args:
-            params: Either a `ProtectPDFByDocumentIdParams` or
-                `ProtectPDFBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `ProtectPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_protect_pdf(params)
         response = self.sync_client.try_make_request(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    async def protect_pdf_async(
-        self, params: ProtectPDFParams
-    ) -> Union[bytes, PDFGateDocument]:
+    async def protect_pdf_async(self, params: ProtectPDFParams) -> PDFGateDocument:
         """Protect a PDF using encryption + optional permission restrictions.
 
         Security options highlights:
@@ -263,59 +240,48 @@ class PDFGate:
             - `encrypt_metadata`: whether PDF metadata is encrypted (default `False`).
 
         Args:
-            params: Either a `ProtectPDFByDocumentIdParams` or
-                `ProtectPDFBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `ProtectPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_protect_pdf(params)
         response = await self.async_client.try_make_request_async(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    def compress_pdf(self, params: CompressPDFParams) -> Union[bytes, PDFGateDocument]:
+    def compress_pdf(self, params: CompressPDFParams) -> PDFGateDocument:
         """Compress a PDF document to reduce its size without changing its visual content.
 
         Args:
-            params: Either a `CompressPDFByDocumentIdParams` or
-                `CompressPDFBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `CompressPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_compress_pdf(params)
         response = self.sync_client.try_make_request(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    async def compress_pdf_async(
-        self, params: CompressPDFParams
-    ) -> Union[bytes, PDFGateDocument]:
+    async def compress_pdf_async(self, params: CompressPDFParams) -> PDFGateDocument:
         """Compress a PDF document to reduce its size without changing its visual content.
 
         Args:
-            params: Either a `CompressPDFByDocumentIdParams` or
-                `CompressPDFBinaryParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `CompressPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_compress_pdf(params)
         response = await self.async_client.try_make_request_async(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    def watermark_pdf(self, params: WatermarkPDFParams) -> Any:
+    def watermark_pdf(self, params: WatermarkPDFParams) -> PDFGateDocument:
         """Apply a text or image watermark to a PDF.
 
         Watermark configuration highlights:
@@ -328,21 +294,18 @@ class PDFGate:
             `rotate` (0..360).
 
         Args:
-            params: Either a `WatermarkPDFByDocumentIdParams` or
-                `WatermarkPDFByFileParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `WatermarkPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_watermark_pdf(params)
         response = self.sync_client.try_make_request(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result
 
-    async def watermark_pdf_async(self, params: WatermarkPDFParams) -> Any:
+    async def watermark_pdf_async(self, params: WatermarkPDFParams) -> PDFGateDocument:
         """Apply a text or image watermark to a PDF.
 
         Watermark configuration highlights:
@@ -355,16 +318,13 @@ class PDFGate:
             `rotate` (0..360).
 
         Args:
-            params: Either a `WatermarkPDFByDocumentIdParams` or
-                `WatermarkPDFByFileParams` instance depending on whether the file
-                is provided as a document ID or raw binary data.
+            params: A `WatermarkPDFParams` instance.
 
         Returns:
-            Depending on the `json_response` flag in `params`, this method either
-            returns the raw PDF bytes or a `PDFGateDocument` instance.
+            A `PDFGateDocument` instance.
         """
         request = self.request_builder.build_watermark_pdf(params)
         response = await self.async_client.try_make_request_async(request)
-        result = ResponseBuilder.build_response(response, json=params.json_response)
+        result = ResponseBuilder.build_document_response(response)
 
         return result

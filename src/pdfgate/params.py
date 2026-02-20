@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, NamedTuple, Optional, Union
+from typing import Any, NamedTuple, Optional
 
 
 class PageSizeType(Enum):
@@ -121,7 +121,6 @@ class GeneratePDFParams(PDFGateParams):
 
     html: Optional[str] = None
     url: Optional[str] = None
-    json_response: Optional[bool] = False
     pre_signed_url_expires_in: Optional[int] = None
     page_size_type: Optional[PageSizeType] = None
     width: Optional[int] = None
@@ -152,16 +151,16 @@ class GeneratePDFParams(PDFGateParams):
 
 
 @dataclass
-class FlattenPDFBaseParams(PDFGateParams):
-    """Common parameters for flattening PDFs."""
+class FlattenPDFParams(PDFGateParams):
+    """Parameters for flattening a PDF by document ID."""
 
-    json_response: Optional[bool] = False
+    document_id: Optional[str] = None
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
 
 
 class FileParam(NamedTuple):
-    """Binary file payload for multipart PDF uploads."""
+    """Binary file payload for multipart uploads."""
 
     name: str
     data: bytes
@@ -169,39 +168,10 @@ class FileParam(NamedTuple):
 
 
 @dataclass
-class FlattenPDFByFileParams(FlattenPDFBaseParams):
-    """Parameters for flattening a PDF provided as a file."""
-
-    file: Optional[FileParam] = None
-
-
-@dataclass
-class FlattenPDFByDocumentIdParams(FlattenPDFBaseParams):
-    """Parameters for flattening a PDF by document ID."""
-
-    document_id: Optional[str] = None
-
-
-FlattenPDFParams = Union[FlattenPDFByFileParams, FlattenPDFByDocumentIdParams]
-
-
-@dataclass
-class ExtractPDFFormDataByDocumentIdParams(PDFGateParams):
+class ExtractPDFFormDataParams(PDFGateParams):
     """Parameters for extracting form data by document ID."""
 
     document_id: str
-
-
-@dataclass
-class ExtractPDFFormDataByFileParams(PDFGateParams):
-    """Parameters for extracting form data from a file."""
-
-    file: FileParam
-
-
-ExtractPDFFormDataParams = Union[
-    ExtractPDFFormDataByDocumentIdParams, ExtractPDFFormDataByFileParams
-]
 
 
 class EncryptionAlgorithm(Enum):
@@ -212,9 +182,10 @@ class EncryptionAlgorithm(Enum):
 
 
 @dataclass
-class ProtectPDFBaseParams(PDFGateParams):
-    """Common parameters for protecting PDFs."""
+class ProtectPDFParams(PDFGateParams):
+    """Parameters for protecting a PDF by document ID."""
 
+    document_id: Optional[str] = None
     algorithm: Optional[EncryptionAlgorithm] = None
     user_password: Optional[str] = None
     owner_password: Optional[str] = None
@@ -222,53 +193,18 @@ class ProtectPDFBaseParams(PDFGateParams):
     disable_copy: Optional[bool] = None
     disable_editing: Optional[bool] = None
     encrypt_metadata: Optional[bool] = None
-    json_response: Optional[bool] = False
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
 
 
 @dataclass
-class ProtectPDFByDocumentIdParams(ProtectPDFBaseParams):
-    """Parameters for protecting a PDF by document ID."""
-
-    document_id: Optional[str] = None
-
-
-@dataclass
-class ProtectPDFByFileParams(ProtectPDFBaseParams):
-    """Parameters for protecting a PDF provided as a file."""
-
-    file: Optional[FileParam] = None
-
-
-ProtectPDFParams = Union[ProtectPDFByDocumentIdParams, ProtectPDFByFileParams]
-
-
-@dataclass
-class CompressPDFBaseParams(PDFGateParams):
-    """Common parameters for compressing PDFs."""
-
-    linearize: Optional[bool] = None
-    json_response: Optional[bool] = False
-    pre_signed_url_expires_in: Optional[int] = None
-    metadata: Optional[Any] = None
-
-
-@dataclass
-class CompressPDFByDocumentIdParams(CompressPDFBaseParams):
+class CompressPDFParams(PDFGateParams):
     """Parameters for compressing a PDF by document ID."""
 
     document_id: Optional[str] = None
-
-
-@dataclass
-class CompressPDFByFileParams(CompressPDFBaseParams):
-    """Parameters for compressing a PDF provided as a file."""
-
-    file: Optional[FileParam] = None
-
-
-CompressPDFParams = Union[CompressPDFByDocumentIdParams, CompressPDFByFileParams]
+    linearize: Optional[bool] = None
+    pre_signed_url_expires_in: Optional[int] = None
+    metadata: Optional[Any] = None
 
 
 class WatermarkType(Enum):
@@ -277,8 +213,11 @@ class WatermarkType(Enum):
 
 
 @dataclass
-class WatermarkPDFBaseParams(PDFGateParams):
+class WatermarkPDFParams(PDFGateParams):
+    """Parameters for watermarking a PDF by document ID."""
+
     type: WatermarkType
+    document_id: Optional[str] = None
     text: Optional[str] = None
     watermark: Optional[FileParam] = None
     font: Optional[PdfStandardFont] = None
@@ -290,19 +229,5 @@ class WatermarkPDFBaseParams(PDFGateParams):
     image_width: Optional[int] = None
     image_height: Optional[int] = None
     rotate: Optional[float] = None
-    json_response: Optional[bool] = False
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
-
-
-@dataclass
-class WatermarkPDFByDocumentIdParams(WatermarkPDFBaseParams):
-    document_id: Optional[str] = None
-
-
-@dataclass
-class WatermarkPDFByFileParams(WatermarkPDFBaseParams):
-    file: Optional[FileParam] = None
-
-
-WatermarkPDFParams = Union[WatermarkPDFByDocumentIdParams, WatermarkPDFByFileParams]

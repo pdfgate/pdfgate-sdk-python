@@ -14,10 +14,9 @@ from pdfgate import PDFGate, GeneratePDFParams
 
 client = PDFGate(api_key=os.getenv("PDFGATE_API_KEY"))
 params = GeneratePDFParams(url="https://example.com")
-pdf = client.generate_pdf(params)
+document = client.generate_pdf(params)
 
-with open("output.pdf", "wb") as f:
-  f.write(pdf)
+print(document["id"])
 ```
 
 # Sync & Async
@@ -36,11 +35,15 @@ Other than that, nothing changes and the interfaces are the same.
 
 # Responses
 
-The two response types for most endpoints are either the raw bytes of the
-PDF file or the documents metadata that you can use to query or download later:
+The SDK returns a `PDFGateDocument` for all processing endpoints:
 
-- file: this is represented by `bytes` and it can be saved directly into a file.
-- `PDFGateDocument`: this is a `TypedDict` that holds all the metadata of the file including its `id`,  and a `file_url` to download it if it was requested by specifying `pre_signed_url_expires_in` in the request.
+- `generate_pdf`
+- `flatten_pdf`
+- `compress_pdf`
+- `watermark_pdf`
+- `protect_pdf`
+
+To get raw PDF bytes, call `get_file` with a document ID.
 
 # Examples
 
@@ -48,10 +51,8 @@ PDF file or the documents metadata that you can use to query or download later:
 
 ```python
 params = GeneratePDFParams(html="<h1>Hello from PDFGate!</h1>")
-pdf = client.generate_pdf(params)
-
-with open("output.pdf", "wb") as f:
-  f.write(pdf)
+document = client.generate_pdf(params)
+print(document["id"])
 ```
 
 ## Get document metadata
@@ -75,14 +76,14 @@ assert document_response = {
 file_content = client.get_file(GetFileParams(document_id=document_id))
 
 with open("output.pdf", "wb") as f:
-  f.write(pdf)
+  f.write(file_content)
 ```
 
 ## Flatten a PDF (make form-fields non-editable)
 
 ```python
-flatten_pdf_params = FlattenPDFDocumentParams(
-    document_id=document_id, json_response=True
+flatten_pdf_params = FlattenPDFParams(
+    document_id=document_id
 )
 flattened_document = client.flatten_pdf(flatten_pdf_params)
 ```
@@ -90,8 +91,8 @@ flattened_document = client.flatten_pdf(flatten_pdf_params)
 ## Compress a PDF
 
 ```python
-compress_pdf_params = CompressPDFByDocumentIdParams(
-    document_id=document_id, json_response=True
+compress_pdf_params = CompressPDFParams(
+    document_id=document_id
 )
 response = client.compress_pdf(compress_pdf_params)
 ```
@@ -99,22 +100,21 @@ response = client.compress_pdf(compress_pdf_params)
 ## Watermark a PDF
 
 ```python
-watermark_pdf_params = WatermarkPDFByFileParams(
-    file=FileParam(name="input.pdf", data=pdf_file),
+watermark_pdf_params = WatermarkPDFParams(
+    document_id=document_id,
     type=WatermarkType.IMAGE,
     watermark=FileParam(name="watermark.jpg", data=jpg_file),
 )
-watermarked_pdf = cast(PDFGateDocument, client.watermark_pdf(watermark_pdf_params))
+watermarked_pdf = client.watermark_pdf(watermark_pdf_params)
 ```
 
 ## Protect (encrypt) a PDF
 
 ```python
-protect_pdf_params = ProtectPDFByDocumentIdParams(
+protect_pdf_params = ProtectPDFParams(
     document_id=document_id,
     user_password=str(uuid.uuid4()),
     owner_password=str(uuid.uuid4()),
-    json_response=True,
 )
 response = client.protect_pdf(protect_pdf_params)
 ```
@@ -129,11 +129,11 @@ html_form = """
     </form>
     """
 generate_pdf_params = GeneratePDFParams(
-    html=html_form, enable_form_fields=True, json_response=True
+    html=html_form, enable_form_fields=True
 )
 document_response = cast(PDFGateDocument, client.generate_pdf(generate_pdf_params))
 document_id = cast(str, document_response.get("id"))
 
-extract_form_params = ExtractPDFFormDataByDocumentIdParams(document_id=document_id)
+extract_form_params = ExtractPDFFormDataParams(document_id=document_id)
 response = cast(dict[str, Any], client.extract_pdf_form_data(extract_form_params))
 ```
