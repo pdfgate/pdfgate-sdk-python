@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import random
 from typing import TypedDict, Union
 import uuid
@@ -9,11 +10,12 @@ from pdfgate.config import Config
 from pdfgate.errors import PDFGateError, ParamsValidationError
 from pdfgate.http_client import PDFGateHTTPClientSync
 from pdfgate.params import (
-    FlattenPDFByFileParams,
-    FlattenPDFByDocumentIdParams,
+    FileParam,
+    FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
-    FileParam,
+    WatermarkPDFParams,
+    WatermarkType,
 )
 from pdfgate.pdfgate import PDFGate
 
@@ -168,7 +170,7 @@ def test_generate_pdf_raises_when_neither_html_nor_url_provided(
         client.generate_pdf(params)
 
 
-def test_generate_pdf_returns_json_when_json_reponse_true(
+def test_generate_pdf_returns_json(
     document_response: DocumentResponse,
     client: PDFGate,
     url_builder: URLBuilder,
@@ -177,7 +179,7 @@ def test_generate_pdf_returns_json_when_json_reponse_true(
     url = url_builder.generate_pdf_url()
     route = respx_mock.post(url)
     route.mock(return_value=httpx.Response(201, json=document_response))
-    params = GeneratePDFParams(html="<h1>Test</h1>", json_response=True)
+    params = GeneratePDFParams(html="<h1>Test</h1>")
 
     response = client.generate_pdf(params)
 
@@ -185,30 +187,11 @@ def test_generate_pdf_returns_json_when_json_reponse_true(
     assert response.get("id") == document_response["id"]
     assert response.get("status") == document_response["status"]
     assert response.get("created_at") == document_response["createdAt"]
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("jsonResponse") is True
 
 
-def test_generate_pdf_returns_bytes_when_json_reponse_false(
-    client: PDFGate, url_builder: URLBuilder, respx_mock: respx.MockRouter
-) -> None:
-    url = url_builder.generate_pdf_url()
-    route = respx_mock.post(url)
-    route.mock(
-        return_value=httpx.Response(
-            201,
-            content=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",
-            headers={"Content-Type": "application/octet-stream"},
-        )
-    )
-    params = GeneratePDFParams(html="<h1>Test</h1>", json_response=False)
-    params = GeneratePDFParams(html="<h1>Test</h1>", json_response=False)
-
-    response = client.generate_pdf(params)
-
-    assert isinstance(response, bytes)
-    assert response.startswith(b"%PDF-1.4")
-
-
-def test_flatten_pdf_by_document_id_returns_json_when_json_reponse_true(
+def test_flatten_pdf_by_document_id_returns_json(
     client: PDFGate,
     url_builder: URLBuilder,
     flattened_document_response: FlattenedDocumentResponse,
@@ -218,7 +201,7 @@ def test_flatten_pdf_by_document_id_returns_json_when_json_reponse_true(
     url = url_builder.flatten_pdf_url()
     route = respx_mock.post(url)
     route.mock(return_value=httpx.Response(201, json=flattened_document_response))
-    params = FlattenPDFByDocumentIdParams(document_id=document_id, json_response=True)
+    params = FlattenPDFParams(document_id=document_id)
 
     response = client.flatten_pdf(params)
 
@@ -227,29 +210,38 @@ def test_flatten_pdf_by_document_id_returns_json_when_json_reponse_true(
     assert response.get("status") == flattened_document_response["status"]
     assert response.get("created_at") == flattened_document_response["createdAt"]
     assert response.get("derived_from") == document_id
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("jsonResponse") is True
 
 
-def test_flatten_pdf_by_file_returns_bytes_when_json_reponse_false(
-    client: PDFGate, url_builder: URLBuilder, respx_mock: respx.MockRouter
+def test_watermark_pdf_with_image_sends_watermark_file(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
 ) -> None:
-    url = url_builder.flatten_pdf_url()
+    url = url_builder.watermark_pdf_url()
     route = respx_mock.post(url)
     route.mock(
         return_value=httpx.Response(
             201,
-            content=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",
-            headers={"Content-Type": "application/octet-stream"},
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "completed",
+                "type": "watermarked",
+                "createdAt": datetime.now().isoformat(),
+            },
         )
     )
-    params = FlattenPDFByFileParams(
-        file=FileParam(
-            name="input.pdf",
-            data=b"%PDF-1.4\n%\xd3\xeb\xe9\xe1\n1 0 obj\n<</Title (PDF - Wikipedia)\n/Creator (Mozilla/5.0 \\(X11; Linux x86_64\\) AppleW",
-        ),
-        json_response=False,
+    params = WatermarkPDFParams(
+        document_id=str(uuid.uuid4()),
+        type=WatermarkType.IMAGE,
+        watermark=FileParam(name="watermark.png", data=b"fake-image-bytes"),
     )
 
-    response = client.flatten_pdf(params)
+    response = client.watermark_pdf(params)
 
-    assert isinstance(response, bytes)
-    assert response.startswith(b"%PDF-1.4")
+    assert isinstance(response, dict)
+    request_body = route.calls.last.request.content
+    assert b'name="watermark"' in request_body
+    assert b"watermark.png" in request_body
+    assert b'name="jsonResponse"' in request_body

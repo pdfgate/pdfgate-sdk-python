@@ -1,6 +1,6 @@
 """Helpers for converting HTTP responses into SDK return types."""
 
-from typing import Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -12,12 +12,15 @@ class ResponseBuilder:
     """Build SDK responses from HTTP responses."""
 
     @staticmethod
-    def build_response(
-        response: httpx.Response, json: Optional[bool] = False
-    ) -> Union[bytes, PDFGateDocument]:
-        """Convert an HTTP response into raw bytes or a document object."""
-        if json:
-            json_response = response.json()
-            return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
+    def build_json_response(response: httpx.Response) -> Any:
+        """Convert an HTTP response into a generic JSON object."""
+        json_response = response.json()
 
-        return response.content
+        return convert_camel_keys_to_snake(json_response)
+
+    @staticmethod
+    def build_document_response(response: httpx.Response) -> PDFGateDocument:
+        """Convert an HTTP response into a `PDFGateDocument`."""
+        json_response = response.json()
+
+        return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))

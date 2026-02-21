@@ -10,21 +10,16 @@ from pdfgate.config import Config
 from pdfgate.dict_keys_converter import snake_to_camel
 from pdfgate.errors import PDFGateError
 from pdfgate.params import (
-    CompressPDFByDocumentIdParams,
     CompressPDFParams,
-    ExtractPDFFormDataByDocumentIdParams,
     ExtractPDFFormDataParams,
     FileParam,
-    FlattenPDFByFileParams,
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
     PDFGateParams,
-    ProtectPDFByDocumentIdParams,
     ProtectPDFParams,
-    WatermarkPDFByDocumentIdParams,
-    WatermarkPDFParams,
     WatermarkType,
+    WatermarkPDFParams,
 )
 from pdfgate.url_builder import URLBuilder
 
@@ -139,6 +134,7 @@ class RequestBuilder:
         """Build a request to generate a PDF from HTML or URL."""
         url = self.url_builder.generate_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
+        params_without_nulls["jsonResponse"] = True
         request = self._json_post_request(url, json=params_without_nulls)
         timeout = int(
             timedelta(minutes=Config.GENERATE_PDF_TIMEOUT_MINUTES).total_seconds()
@@ -147,17 +143,12 @@ class RequestBuilder:
         return PDFGateRequest(request=request, timeout=timeout)
 
     def build_flatten_pdf(self, params: FlattenPDFParams) -> PDFGateRequest:
-        """Build a request to flatten a PDF from file or document ID."""
+        """Build a request to flatten a PDF by document ID."""
         url = self.url_builder.flatten_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
-        if isinstance(params, FlattenPDFByFileParams) and params.file is not None:
-            files = self._build_file_param(params_without_nulls.pop("file"), "file")
-        else:
-            files = {}
+        params_without_nulls["jsonResponse"] = True
 
-        request = self._multipart_post_request(
-            url, data=params_without_nulls, files=files
-        )
+        request = self._json_post_request(url, json=params_without_nulls)
         timeout = int(
             timedelta(minutes=Config.FLATTEN_PDF_TIMEOUT_MINUTES).total_seconds()
         )
@@ -169,28 +160,17 @@ class RequestBuilder:
     ) -> PDFGateRequest:
         """Build a request to extract PDF form data."""
         url = self.url_builder.extract_pdf_form_data_url()
-        if isinstance(params, ExtractPDFFormDataByDocumentIdParams):
-            params_dict = {"documentId": params.document_id}
-            request = self._multipart_post_request(url, data=params_dict)
-        else:
-            files = self._build_file_param(params.file, "file")
-            request = self._multipart_post_request(url, files=files)
+        params_dict = {"documentId": params.document_id}
+        request = self._json_post_request(url, json=params_dict)
 
         return PDFGateRequest(request=request)
 
     def build_protect_pdf(self, params: ProtectPDFParams) -> PDFGateRequest:
-        """Build a request to encrypt a PDF from file or document ID."""
+        """Build a request to encrypt a PDF by document ID."""
         url = self.url_builder.protect_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
-        if isinstance(params, ProtectPDFByDocumentIdParams):
-            request = self._multipart_post_request(url=url, data=params_without_nulls)
-        else:
-            file_param = {"file": params_without_nulls.pop("file", None)}
-            request = self._multipart_post_request(
-                url=url,
-                data=params_without_nulls,
-                files=file_param,
-            )
+        params_without_nulls["jsonResponse"] = True
+        request = self._json_post_request(url=url, json=params_without_nulls)
         timeout = int(
             timedelta(minutes=Config.PROTECT_PDF_TIMEOUT_MINUTES).total_seconds()
         )
@@ -198,18 +178,11 @@ class RequestBuilder:
         return PDFGateRequest(request=request, timeout=timeout)
 
     def build_compress_pdf(self, params: CompressPDFParams) -> PDFGateRequest:
-        """Build a request to compress a PDF from file or document ID."""
+        """Build a request to compress a PDF by document ID."""
         url = self.url_builder.compress_pdf_url()
         params_without_nulls = pdfgate_params_to_params_dict(params)
-        if isinstance(params, CompressPDFByDocumentIdParams):
-            request = self._multipart_post_request(url=url, data=params_without_nulls)
-        else:
-            file_param = {"file": params_without_nulls.pop("file", None)}
-            request = self._multipart_post_request(
-                url=url,
-                data=params_without_nulls,
-                files=file_param,
-            )
+        params_without_nulls["jsonResponse"] = True
+        request = self._json_post_request(url=url, json=params_without_nulls)
         timeout = int(
             timedelta(minutes=Config.COMPRESS_PDF_TIMEOUT_MINUTES).total_seconds()
         )
@@ -217,34 +190,19 @@ class RequestBuilder:
         return PDFGateRequest(request=request, timeout=timeout)
 
     def build_watermark_pdf(self, params: WatermarkPDFParams) -> PDFGateRequest:
-        """Build a request to watermark a PDF from file or document ID."""
+        """Build a request to watermark a PDF by document ID."""
         url = self.url_builder.watermark_pdf_url()
         params_dict = pdfgate_params_to_params_dict(params)
-        if isinstance(params, WatermarkPDFByDocumentIdParams):
-            if params.type == WatermarkType.TEXT:
-                request = self._multipart_post_request(url=url, data=params_dict)
-            else:
-                watermark_file_param = self._build_file_param(
-                    params_dict.pop("watermark"), "watermark"
-                )
-                request = self._multipart_post_request(
-                    url=url,
-                    data=params_dict,
-                    files=watermark_file_param,
-                )
-        else:
-            if params.type == WatermarkType.IMAGE:
-                watermark_file_param = self._build_file_param(
-                    params_dict.pop("watermark"), "watermark"
-                )
-            else:
-                watermark_file_param = {}
-            file_param = self._build_file_param(params_dict.pop("file"), "file")
-            request = self._multipart_post_request(
-                url=url,
-                data=params_dict,
-                files={**file_param, **watermark_file_param},
+        params_dict["jsonResponse"] = True
+        if params.type == WatermarkType.IMAGE and params.watermark is not None:
+            watermark_file_param = self._build_file_param(
+                params_dict.pop("watermark"), "watermark"
             )
+            request = self._multipart_post_request(
+                url=url, data=params_dict, files=watermark_file_param
+            )
+        else:
+            request = self._json_post_request(url=url, json=params_dict)
         timeout = int(
             timedelta(minutes=Config.WATERMARK_PDF_TIMEOUT_MINUTES).total_seconds()
         )
