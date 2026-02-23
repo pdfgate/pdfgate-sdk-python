@@ -79,3 +79,11 @@ class URLBuilder:
             Full URL to watermark a PDF.
         """
         return f"{self.domain}/watermark/pdf"
+
+    def upload_file_url(self) -> str:
+        """Build the URL for uploading a PDF.
+
+        Returns:
+            Full URL to upload a PDF.
+        """
+        return f"{self.domain}/upload"

@@ -77,6 +77,18 @@ class ClickSelectorChainSetup:
     chains: Optional[list["ClickSelectorChain"]] = None
 
 
+class FileParam(NamedTuple):
+    """Binary file payload for multipart uploads."""
+
+    name: str
+    data: bytes
+    type: Optional[str] = None
+
+    @classmethod
+    def pdf(cls, name: str, data: bytes) -> "FileParam":
+        return cls(name=name, data=data, type="application/pdf")
+
+
 @dataclass
 class PDFGateParams:
     """Marker base class for all parameter dataclasses."""
@@ -97,6 +109,16 @@ class GetFileParams(PDFGateParams):
     """Parameters for downloading a document's file content."""
 
     document_id: str
+
+
+@dataclass
+class UploadFileParams(PDFGateParams):
+    """Parameters for uploading a raw PDF file to PDFGate"""
+
+    file: Optional[FileParam] = None
+    url: Optional[str] = None
+    metadata: Optional[Any] = None
+    pre_signed_url_expires_in: Optional[int] = None
 
 
 @dataclass
@@ -157,14 +179,6 @@ class FlattenPDFParams(PDFGateParams):
     document_id: Optional[str] = None
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
-
-
-class FileParam(NamedTuple):
-    """Binary file payload for multipart uploads."""
-
-    name: str
-    data: bytes
-    type: Optional[str] = None
 
 
 @dataclass

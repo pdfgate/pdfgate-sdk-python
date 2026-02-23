@@ -15,6 +15,7 @@ from .params import (
     ClickSelectorChainSetup,
     PDFGateParams,
     GetDocumentParams,
+    UploadFileParams,
     GetFileParams,
     GeneratePDFAuthentication,
     Viewport,
@@ -60,4 +61,5 @@ __all__ = [
     "DocumentStatus",
     "DocumentType",
     "PDFGateDocument",
+    "UploadFileParams",
 ]

@@ -13,6 +13,7 @@ from .params import (
     GetDocumentParams,
     GetFileParams,
     ProtectPDFParams,
+    UploadFileParams,
     WatermarkPDFParams,
 )
 from .responses import PDFGateDocument
@@ -325,6 +326,44 @@ class PDFGate:
         """
         request = self.request_builder.build_watermark_pdf(params)
         response = await self.async_client.try_make_request_async(request)
+        result = ResponseBuilder.build_document_response(response)
+
+        return result
+
+    def upload_file(self, params: UploadFileParams) -> PDFGateDocument:
+        """Upload a raw PDF file.
+
+        Important: Accessing stored generated files requires enabling
+        “Save files” in the PDFGate Dashboard settings (disabled by default).
+
+        Args:
+            params: Upload parameters. When both `file` and `url` are provided,
+                `file` is prioritized and the request is sent as multipart.
+
+        Returns:
+            The metadata of the file so you can reference it on further calls.
+        """
+        request = self.request_builder.build_upload_file(params)
+        response = self.sync_client.try_make_request(request=request)
+        result = ResponseBuilder.build_document_response(response)
+
+        return result
+
+    async def upload_file_async(self, params: UploadFileParams) -> PDFGateDocument:
+        """Upload a raw PDF file.
+
+        Important: Accessing stored generated files requires enabling
+        “Save files” in the PDFGate Dashboard settings (disabled by default).
+
+        Args:
+            params: Upload parameters. When both `file` and `url` are provided,
+                `file` is prioritized and the request is sent as multipart.
+
+        Returns:
+            The metadata of the file so you can reference it on further calls.
+        """
+        request = self.request_builder.build_upload_file(params)
+        response = await self.async_client.try_make_request_async(request=request)
         result = ResponseBuilder.build_document_response(response)
 
         return result
