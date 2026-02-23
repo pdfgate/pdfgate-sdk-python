@@ -9,6 +9,7 @@ from PIL import Image
 from pdfgate.params import (
     CompressPDFParams,
     ExtractPDFFormDataParams,
+    FileParam,
     FlattenPDFParams,
     GeneratePDFAuthentication,
     GeneratePDFParams,
@@ -17,6 +18,7 @@ from pdfgate.params import (
     PageSizeType,
     PdfPageMargin,
     ProtectPDFParams,
+    UploadFileParams,
     Viewport,
     WatermarkPDFParams,
     WatermarkType,
@@ -268,3 +270,28 @@ def test_watermark_pdf_with_text_by_document_id(
     assert "type" in response and response.get("type") == "watermarked"
     assert "derived_from" in response and response.get("derived_from") == document_id
     assert "status" in response and response.get("status") == "completed"
+
+
+def test_upload_file(client: PDFGate, pdf_file: bytes) -> None:
+    file_param = FileParam.pdf(name="input.pdf", data=pdf_file)
+    document_response = client.upload_file(UploadFileParams(file=file_param))
+
+    assert isinstance(document_response, dict)
+    assert "id" in document_response
+    assert "type" in document_response and document_response["type"] == "uploaded"
+    assert "status" in document_response and document_response["status"] == "completed"
+    assert "created_at" in document_response
+
+
+@pytest.mark.asyncio
+async def test_upload_file_async(client: PDFGate, pdf_file: bytes) -> None:
+    file_param = FileParam.pdf(name="input.pdf", data=pdf_file)
+    document_response = await client.upload_file_async(
+        UploadFileParams(file=file_param)
+    )
+
+    assert isinstance(document_response, dict)
+    assert "id" in document_response
+    assert "type" in document_response and document_response["type"] == "uploaded"
+    assert "status" in document_response and document_response["status"] == "completed"
+    assert "created_at" in document_response

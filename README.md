@@ -71,6 +71,7 @@ The SDK returns a `PDFGateDocument` for all processing endpoints:
 - `compress_pdf`
 - `watermark_pdf`
 - `protect_pdf`
+- `upload_file`
 
 To get raw PDF bytes, call `get_file` with a document ID.
 
@@ -107,6 +108,15 @@ file_content = client.get_file(GetFileParams(document_id=document_id))
 with open("output.pdf", "wb") as f:
   f.write(file_content)
 ```
+
+## Upload a PDF file
+
+```python
+file_param = FileParam.pdf(name="input.pdf", data=pdf_file_bytes)
+document_response = client.upload_file(UploadFileParams(file=file_param))
+```
+
+If both `file` and `url` are provided, `file` is prioritized and the request is sent as multipart.
 
 ## Flatten a PDF (make form-fields non-editable)
 

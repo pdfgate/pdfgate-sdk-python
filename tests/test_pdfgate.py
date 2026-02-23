@@ -14,6 +14,7 @@ from pdfgate.params import (
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
+    UploadFileParams,
     WatermarkPDFParams,
     WatermarkType,
 )
@@ -245,3 +246,71 @@ def test_watermark_pdf_with_image_sends_watermark_file(
     assert b'name="watermark"' in request_body
     assert b"watermark.png" in request_body
     assert b'name="jsonResponse"' in request_body
+
+
+def test_upload_file_sends_multipart_when_file_is_present(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    url = url_builder.upload_file_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "completed",
+                "type": "uploaded",
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = UploadFileParams(
+        file=FileParam.pdf(name="input.pdf", data=b"fake-pdf-bytes"),
+        url="https://example.com/will-be-sent-as-form-data",
+    )
+
+    response = client.upload_file(params)
+
+    assert isinstance(response, dict)
+    assert str(route.calls.last.request.url) == url
+    assert route.calls.last.request.headers["content-type"].startswith(
+        "multipart/form-data"
+    )
+    request_body = route.calls.last.request.content
+    assert b'name="file"' in request_body
+    assert b"input.pdf" in request_body
+    assert b'name="jsonResponse"' in request_body
+    assert b'name="url"' in request_body
+
+
+def test_upload_file_with_url_sends_json_and_default_timeout(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    url = url_builder.upload_file_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "completed",
+                "type": "uploaded",
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    request = client.request_builder.build_upload_file(
+        UploadFileParams(url="https://example.com")
+    )
+    response = client.upload_file(UploadFileParams(url="https://example.com"))
+
+    assert isinstance(response, dict)
+    assert request.timeout == Config.DEFAULT_TIMEOUT_SECONDS
+    assert str(route.calls.last.request.url) == url
+    request_json = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_json.get("url") == "https://example.com"
+    assert request_json.get("jsonResponse") is True
