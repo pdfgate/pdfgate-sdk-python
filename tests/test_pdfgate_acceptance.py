@@ -8,6 +8,9 @@ import pytest
 from PIL import Image
 from pdfgate.params import (
     CompressPDFParams,
+    CreateEnvelopeParams,
+    EnvelopeDocument,
+    EnvelopeRecipient,
     ExtractPDFFormDataParams,
     FileParam,
     FlattenPDFParams,
@@ -63,6 +66,37 @@ def document_id_with_size(pdf_document: PDFGateDocument) -> DocumentIdWithSize:
         "document_id": pdf_document.get("id", ""),
         "size": cast(int, pdf_document.get("size", 0)),
     }
+
+
+_ENVELOPE_HTML = """
+<html><body style="font-family: Arial, sans-serif; padding: 40px;">
+  <h2>Agreement</h2>
+  <p>Please review and complete the required fields below.</p>
+  <div style="margin-top: 30px;">
+    <label>Full Name</label><br />
+    <input type="text" name="recipient-name" style="width: 300px; height: 30px;" />
+  </div>
+  <div style="margin-top: 30px;">
+    <label>Signature</label><br />
+    <pdfgate-signature-field name="signature" style="width: 200px; height: 200px;"></pdfgate-signature-field>
+  </div>
+  <div style="margin-top: 30px;">
+    <label>Date</label><br />
+    <input type="datetime-local" name="signature-date" pdfgate-auto-fill="true" style="width: 200px; height: 30px;" />
+  </div>
+</body></html>
+"""
+
+
+@pytest.fixture(scope="module")
+def envelope_document_id(client: PDFGate) -> str:
+    document_response = client.generate_pdf(
+        GeneratePDFParams(
+            html=_ENVELOPE_HTML,
+            enable_form_fields=True,
+        )
+    )
+    return cast(str, document_response.get("id"))
 
 
 @pytest.fixture(scope="module")
@@ -295,3 +329,71 @@ async def test_upload_file_async(client: PDFGate, pdf_file: bytes) -> None:
     assert "type" in document_response and document_response["type"] == "uploaded"
     assert "status" in document_response and document_response["status"] == "completed"
     assert "created_at" in document_response
+
+
+def test_create_envelope(client: PDFGate, envelope_document_id: str) -> None:
+    source_document_id = envelope_document_id
+
+    params = CreateEnvelopeParams(
+        requester_name="John Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_document_id,
+                name="Employment Agreement",
+                recipients=[
+                    EnvelopeRecipient(
+                        email="anna@example.com",
+                        name="Anna Smith",
+                    )
+                ],
+            )
+        ],
+        metadata={"customerId": "cus_123", "department": "sales"},
+    )
+
+    response = client.create_envelope(params)
+
+    assert isinstance(response, dict)
+    assert "id" in response
+    assert response.get("status") == "created"
+    assert "created_at" in response
+    documents = response.get("documents", [])
+    assert len(documents) >= 1
+    assert response.get("metadata") == {"customer_id": "cus_123", "department": "sales"}
+
+
+@pytest.mark.asyncio
+async def test_create_envelope_async(
+    client: PDFGate, envelope_document_id: str
+) -> None:
+    source_document_id = envelope_document_id
+
+    params = CreateEnvelopeParams(
+        requester_name="Jane Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_document_id,
+                name="Service Agreement",
+                recipients=[
+                    EnvelopeRecipient(
+                        email="bob@example.com",
+                        name="Bob Smith",
+                    )
+                ],
+            )
+        ],
+        metadata={"customerId": "cus_456", "department": "engineering"},
+    )
+
+    response = await client.create_envelope_async(params)
+
+    assert isinstance(response, dict)
+    assert "id" in response
+    assert response.get("status") == "created"
+    assert "created_at" in response
+    documents = response.get("documents", [])
+    assert len(documents) >= 1
+    assert response.get("metadata") == {
+        "customer_id": "cus_456",
+        "department": "engineering",
+    }

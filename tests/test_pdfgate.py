@@ -10,6 +10,9 @@ from pdfgate.config import Config
 from pdfgate.errors import PDFGateError, ParamsValidationError
 from pdfgate.http_client import PDFGateHTTPClientSync
 from pdfgate.params import (
+    CreateEnvelopeParams,
+    EnvelopeDocument,
+    EnvelopeRecipient,
     FileParam,
     FlattenPDFParams,
     GeneratePDFParams,
@@ -314,3 +317,156 @@ def test_upload_file_with_url_sends_json_and_default_timeout(
     request_json = json.loads(route.calls.last.request.content.decode("utf-8"))
     assert request_json.get("url") == "https://example.com"
     assert request_json.get("jsonResponse") is True
+
+
+def test_create_envelope_sends_correct_json(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    source_doc_id = str(uuid.uuid4())
+    envelope_id = str(uuid.uuid4())
+    url = url_builder.envelope_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": envelope_id,
+                "status": "created",
+                "documents": [
+                    {
+                        "sourceDocumentId": source_doc_id,
+                        "recipients": [
+                            {
+                                "email": "anna@example.com",
+                                "status": "pending",
+                                "fields": [],
+                            }
+                        ],
+                        "status": "pending",
+                    }
+                ],
+                "createdAt": datetime.now().isoformat(),
+                "metadata": {"customerId": "cus_123"},
+            },
+        )
+    )
+    params = CreateEnvelopeParams(
+        requester_name="John Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_doc_id,
+                name="Employment Agreement",
+                recipients=[
+                    EnvelopeRecipient(
+                        email="anna@example.com",
+                        name="Anna Smith",
+                        role="signer",
+                    )
+                ],
+            )
+        ],
+        metadata={"customerId": "cus_123"},
+    )
+
+    response = client.create_envelope(params)
+
+    assert isinstance(response, dict)
+    assert response.get("id") == envelope_id
+    assert response.get("status") == "created"
+    assert response.get("created_at") is not None
+    assert response.get("metadata") == {"customer_id": "cus_123"}
+    documents = response.get("documents", [])
+    assert len(documents) == 1
+    assert documents[0].get("source_document_id") == source_doc_id
+
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("requesterName") == "John Doe"
+    assert request_body.get("metadata") == {"customerId": "cus_123"}
+    docs = request_body.get("documents", [])
+    assert len(docs) == 1
+    assert docs[0].get("sourceDocumentId") == source_doc_id
+    assert docs[0].get("name") == "Employment Agreement"
+    recipients = docs[0].get("recipients", [])
+    assert len(recipients) == 1
+    assert recipients[0].get("email") == "anna@example.com"
+    assert recipients[0].get("name") == "Anna Smith"
+    assert recipients[0].get("role") == "signer"
+
+
+def test_create_envelope_omits_optional_fields(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    source_doc_id = str(uuid.uuid4())
+    url = url_builder.envelope_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "created",
+                "documents": [],
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateEnvelopeParams(
+        requester_name="Jane Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_doc_id,
+                name="Contract",
+                recipients=[EnvelopeRecipient(email="bob@example.com", name="Bob")],
+            )
+        ],
+    )
+
+    client.create_envelope(params)
+
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert "metadata" not in request_body
+    recipients = request_body["documents"][0]["recipients"]
+    assert "role" not in recipients[0]
+
+
+@pytest.mark.asyncio
+async def test_create_envelope_async(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    source_doc_id = str(uuid.uuid4())
+    envelope_id = str(uuid.uuid4())
+    url = url_builder.envelope_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": envelope_id,
+                "status": "created",
+                "documents": [],
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateEnvelopeParams(
+        requester_name="John Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_doc_id,
+                name="Agreement",
+                recipients=[EnvelopeRecipient(email="anna@example.com", name="Anna")],
+            )
+        ],
+    )
+
+    response = await client.create_envelope_async(params)
+
+    assert isinstance(response, dict)
+    assert response.get("id") == envelope_id
+    assert response.get("status") == "created"

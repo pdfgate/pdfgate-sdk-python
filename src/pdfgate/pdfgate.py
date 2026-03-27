@@ -7,6 +7,7 @@ from pdfgate.response_builder import ResponseBuilder
 from .errors import ParamsValidationError
 from .params import (
     CompressPDFParams,
+    CreateEnvelopeParams,
     ExtractPDFFormDataParams,
     FlattenPDFParams,
     GeneratePDFParams,
@@ -16,7 +17,7 @@ from .params import (
     UploadFileParams,
     WatermarkPDFParams,
 )
-from .responses import PDFGateDocument
+from .responses import PDFGateDocument, PDFGateEnvelope
 
 
 class PDFGate:
@@ -348,6 +349,36 @@ class PDFGate:
         result = ResponseBuilder.build_document_response(response)
 
         return result
+
+    def create_envelope(self, params: CreateEnvelopeParams) -> PDFGateEnvelope:
+        """Create a signing envelope from one or more source documents.
+
+        Args:
+            params: Envelope creation parameters including documents, recipients,
+                requester name, and optional metadata.
+
+        Returns:
+            The created envelope in ``created`` status.
+        """
+        request = self.request_builder.build_create_envelope(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    async def create_envelope_async(
+        self, params: CreateEnvelopeParams
+    ) -> PDFGateEnvelope:
+        """Create a signing envelope from one or more source documents.
+
+        Args:
+            params: Envelope creation parameters including documents, recipients,
+                requester name, and optional metadata.
+
+        Returns:
+            The created envelope in ``created`` status.
+        """
+        request = self.request_builder.build_create_envelope(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_envelope_response(response)
 
     async def upload_file_async(self, params: UploadFileParams) -> PDFGateDocument:
         """Upload a raw PDF file.

@@ -23,6 +23,80 @@ class DocumentType(Enum):
     SIGNED = "signed"
 
 
+class EnvelopeStatus(Enum):
+    CREATED = "created"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+
+
+class EnvelopeDocumentStatus(Enum):
+    PENDING = "pending"
+    SENT_FOR_SIGNING = "sent_for_signing"
+    SIGNING_IN_PROGRESS = "signing_in_progress"
+    SIGNING_FAILED = "signing_failed"
+    COMPLETED = "completed"
+
+
+class DocumentRecipientStatus(Enum):
+    PENDING = "pending"
+    SIGNED = "signed"
+
+
+class DocumentFieldType(Enum):
+    SIGNATURE = "signature"
+    TEXT = "text"
+    NUMBER = "number"
+    TEXT_AREA = "textarea"
+    DATE = "date"
+    TIME = "time"
+    DATETIME = "datetime"
+    CHECKBOX = "checkbox"
+    RADIO_BUTTON = "radio"
+    SELECT = "select"
+
+
+class EnvelopeFieldResponse(TypedDict, total=False):
+    """A field within an envelope recipient response."""
+
+    name: str
+    type: str
+    value: Any
+    checked: bool
+
+
+class EnvelopeRecipientResponse(TypedDict, total=False):
+    """A recipient within an envelope document response."""
+
+    email: str
+    status: str
+    signed_at: str
+    viewed_at: str
+    fields: list[EnvelopeFieldResponse]
+
+
+class EnvelopeDocumentResponse(TypedDict, total=False):
+    """A document within an envelope response."""
+
+    source_document_id: str
+    signed_document_id: str
+    recipients: list[EnvelopeRecipientResponse]
+    status: str
+    completed_at: str
+
+
+class PDFGateEnvelope(TypedDict, total=False):
+    """Typed dictionary representing a PDFGate envelope response."""
+
+    id: str
+    status: str
+    documents: list[EnvelopeDocumentResponse]
+    created_at: str
+    completed_at: str
+    expired_at: str
+    metadata: Optional[dict[str, Any]]
+
+
 class PDFGateDocument(TypedDict, total=False):
     """Typed dictionary representing a PDFGate document response."""
 
