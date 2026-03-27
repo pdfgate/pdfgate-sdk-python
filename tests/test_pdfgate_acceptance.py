@@ -332,13 +332,11 @@ async def test_upload_file_async(client: PDFGate, pdf_file: bytes) -> None:
 
 
 def test_create_envelope(client: PDFGate, envelope_document_id: str) -> None:
-    source_document_id = envelope_document_id
-
     params = CreateEnvelopeParams(
         requester_name="John Doe",
         documents=[
             EnvelopeDocument(
-                source_document_id=source_document_id,
+                source_document_id=envelope_document_id,
                 name="Employment Agreement",
                 recipients=[
                     EnvelopeRecipient(
@@ -366,13 +364,11 @@ def test_create_envelope(client: PDFGate, envelope_document_id: str) -> None:
 async def test_create_envelope_async(
     client: PDFGate, envelope_document_id: str
 ) -> None:
-    source_document_id = envelope_document_id
-
     params = CreateEnvelopeParams(
         requester_name="Jane Doe",
         documents=[
             EnvelopeDocument(
-                source_document_id=source_document_id,
+                source_document_id=envelope_document_id,
                 name="Service Agreement",
                 recipients=[
                     EnvelopeRecipient(
