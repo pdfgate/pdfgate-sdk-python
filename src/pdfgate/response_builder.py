@@ -21,13 +21,9 @@ class ResponseBuilder:
     @staticmethod
     def build_envelope_response(response: httpx.Response) -> PDFGateEnvelope:
         """Convert an HTTP response into a `PDFGateEnvelope`."""
-        json_response = response.json()
-
-        return cast(PDFGateEnvelope, convert_camel_keys_to_snake(json_response))
+        return cast(PDFGateEnvelope, ResponseBuilder.build_json_response(response))
 
     @staticmethod
     def build_document_response(response: httpx.Response) -> PDFGateDocument:
         """Convert an HTTP response into a `PDFGateDocument`."""
-        json_response = response.json()
-
-        return cast(PDFGateDocument, convert_camel_keys_to_snake(json_response))
+        return cast(PDFGateDocument, ResponseBuilder.build_json_response(response))
