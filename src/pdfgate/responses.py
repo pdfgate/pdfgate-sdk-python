@@ -60,7 +60,7 @@ class EnvelopeFieldResponse(TypedDict, total=False):
     """A field within an envelope recipient response."""
 
     name: str
-    type: str
+    type: DocumentFieldType
     value: Any
     checked: bool
 
@@ -69,7 +69,7 @@ class EnvelopeRecipientResponse(TypedDict, total=False):
     """A recipient within an envelope document response."""
 
     email: str
-    status: str
+    status: DocumentRecipientStatus
     signed_at: str
     viewed_at: str
     fields: list[EnvelopeFieldResponse]
@@ -81,7 +81,7 @@ class EnvelopeDocumentResponse(TypedDict, total=False):
     source_document_id: str
     signed_document_id: str
     recipients: list[EnvelopeRecipientResponse]
-    status: str
+    status: EnvelopeDocumentStatus
     completed_at: str
 
 
@@ -89,7 +89,7 @@ class PDFGateEnvelope(TypedDict, total=False):
     """Typed dictionary representing a PDFGate envelope response."""
 
     id: str
-    status: str
+    status: EnvelopeStatus
     documents: list[EnvelopeDocumentResponse]
     created_at: str
     completed_at: str
