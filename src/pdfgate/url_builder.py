@@ -87,3 +87,11 @@ class URLBuilder:
             Full URL to upload a PDF.
         """
         return f"{self.domain}/upload"
+
+    def envelope_url(self) -> str:
+        """Build the URL for creating an envelope.
+
+        Returns:
+            Full URL to create an envelope.
+        """
+        return f"{self.domain}/envelope"

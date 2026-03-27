@@ -1,6 +1,7 @@
 """Key conversion helpers for camelCase and snake_case dictionaries."""
 
 import re
+from enum import Enum
 from typing import Any, Union
 
 
@@ -27,6 +28,20 @@ def convert_camel_keys_to_snake(
         return new_dict  # type: ignore
     elif isinstance(data, list):
         return [convert_camel_keys_to_snake(item) for item in data]  # type: ignore
+    else:
+        return data
+
+
+def remove_none_values(
+    data: Union[dict[Any, Any], list[Any], Any],
+) -> Union[dict[Any, Any], list[Any], Any]:
+    """Recursively removes None values and unwraps Enum instances to their values."""
+    if isinstance(data, dict):
+        return {k: remove_none_values(v) for k, v in data.items() if v is not None}
+    elif isinstance(data, list):
+        return [remove_none_values(item) for item in data]
+    elif isinstance(data, Enum):
+        return data.value
     else:
         return data
 

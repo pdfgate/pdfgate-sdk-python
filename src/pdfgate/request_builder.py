@@ -2,15 +2,15 @@
 
 from dataclasses import asdict, dataclass
 from datetime import timedelta
-from enum import Enum
 import mimetypes
 from typing import Any
 import httpx
 from pdfgate.config import Config
-from pdfgate.dict_keys_converter import snake_to_camel
+from pdfgate.dict_keys_converter import convert_snake_keys_to_camel, remove_none_values
 from pdfgate.errors import PDFGateError
 from pdfgate.params import (
     CompressPDFParams,
+    CreateEnvelopeParams,
     ExtractPDFFormDataParams,
     FileParam,
     FlattenPDFParams,
@@ -52,15 +52,7 @@ def get_domain_from_api_key(api_key: str) -> str:
 
 def pdfgate_params_to_params_dict(instance: PDFGateParams) -> dict[str, Any]:
     """Convert a params dataclass into a JSON-ready dict."""
-    params_dict = asdict(instance)
-    params_without_nulls: dict[str, Any] = {}
-    for k, v in params_dict.items():
-        if v is not None:
-            params_without_nulls[snake_to_camel(k)] = (
-                v.value if isinstance(v, Enum) else v
-            )
-
-    return params_without_nulls
+    return convert_snake_keys_to_camel(remove_none_values(asdict(instance)))  # type: ignore[return-value]
 
 
 @dataclass
@@ -209,6 +201,13 @@ class RequestBuilder:
         )
 
         return PDFGateRequest(request=request, timeout=timeout)
+
+    def build_create_envelope(self, params: CreateEnvelopeParams) -> PDFGateRequest:
+        """Build a request to create a signing envelope."""
+        url = self.url_builder.envelope_url()
+        body = pdfgate_params_to_params_dict(params)
+        request = self._json_post_request(url=url, json=body)
+        return PDFGateRequest(request=request)
 
     def build_upload_file(self, params: UploadFileParams) -> PDFGateRequest:
         """Build a request to upload a PDF file to the PDFGate storage"""

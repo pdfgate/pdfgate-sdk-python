@@ -28,11 +28,19 @@ from .params import (
     CompressPDFParams,
     WatermarkType,
     WatermarkPDFParams,
+    EnvelopeRecipient,
+    EnvelopeDocument,
+    CreateEnvelopeParams,
 )
 from .responses import (
     DocumentStatus,
     DocumentType,
+    EnvelopeStatus,
+    EnvelopeDocumentStatus,
+    DocumentRecipientStatus,
+    DocumentFieldType,
     PDFGateDocument,
+    PDFGateEnvelope,
 )
 
 __all__ = [
@@ -60,6 +68,14 @@ __all__ = [
     "WatermarkPDFParams",
     "DocumentStatus",
     "DocumentType",
+    "EnvelopeStatus",
+    "EnvelopeDocumentStatus",
+    "DocumentRecipientStatus",
+    "DocumentFieldType",
     "PDFGateDocument",
     "UploadFileParams",
+    "EnvelopeRecipient",
+    "EnvelopeDocument",
+    "CreateEnvelopeParams",
+    "PDFGateEnvelope",
 ]

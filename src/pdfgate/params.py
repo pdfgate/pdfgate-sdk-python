@@ -227,6 +227,33 @@ class WatermarkType(Enum):
 
 
 @dataclass
+class EnvelopeRecipient(PDFGateParams):
+    """A recipient on a document within an envelope."""
+
+    email: str
+    name: str
+    role: Optional[str] = None
+
+
+@dataclass
+class EnvelopeDocument(PDFGateParams):
+    """A document to include in an envelope."""
+
+    source_document_id: str
+    name: str
+    recipients: list["EnvelopeRecipient"]
+
+
+@dataclass
+class CreateEnvelopeParams(PDFGateParams):
+    """Parameters for creating a signing envelope."""
+
+    documents: list["EnvelopeDocument"]
+    requester_name: str
+    metadata: Optional[dict] = None
+
+
+@dataclass
 class WatermarkPDFParams(PDFGateParams):
     """Parameters for watermarking a PDF by document ID."""
 
