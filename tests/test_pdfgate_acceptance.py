@@ -1,7 +1,6 @@
 import io
 import os
 import sys
-import time
 from typing import Any, TypedDict, cast
 import uuid
 
@@ -18,6 +17,7 @@ from pdfgate.params import (
     GeneratePDFAuthentication,
     GeneratePDFParams,
     GetDocumentParams,
+    GetEnvelopeParams,
     GetFileParams,
     PageSizeType,
     PdfPageMargin,
@@ -355,33 +355,17 @@ async def test_upload_file_async(client: PDFGate, pdf_file: bytes) -> None:
     assert "created_at" in document_response
 
 
-def test_create_envelope(client: PDFGate, envelope_document_id: str) -> None:
-    params = CreateEnvelopeParams(
-        requester_name="John Doe",
-        documents=[
-            EnvelopeDocument(
-                source_document_id=envelope_document_id,
-                name="Employment Agreement",
-                recipients=[
-                    EnvelopeRecipient(
-                        email="anna@example.com",
-                        name="Anna Smith",
-                    )
-                ],
-            )
-        ],
-        metadata={"customerId": "cus_123", "department": "sales"},
-    )
-
-    response = client.create_envelope(params)
-
-    assert isinstance(response, dict)
-    assert "id" in response
-    assert response.get("status") == "created"
-    assert "created_at" in response
-    documents = response.get("documents", [])
+def test_create_envelope(created_envelope: PDFGateEnvelope) -> None:
+    assert isinstance(created_envelope, dict)
+    assert "id" in created_envelope
+    assert created_envelope.get("status") == "created"
+    assert "created_at" in created_envelope
+    documents = created_envelope.get("documents", [])
     assert len(documents) >= 1
-    assert response.get("metadata") == {"customer_id": "cus_123", "department": "sales"}
+    assert created_envelope.get("metadata") == {
+        "customer_id": "cus_123",
+        "department": "sales",
+    }
 
 
 @pytest.mark.asyncio
@@ -421,8 +405,6 @@ async def test_create_envelope_async(
 
 def test_send_envelope(client: PDFGate, created_envelope: PDFGateEnvelope) -> None:
     created_envelope_id = cast(str, created_envelope.get("id"))
-
-    time.sleep(1)  # Throttle to avoid rate limit errors
     response = client.send_envelope(SendEnvelopeParams(envelope_id=created_envelope_id))
 
     assert isinstance(response, dict)
@@ -430,3 +412,19 @@ def test_send_envelope(client: PDFGate, created_envelope: PDFGateEnvelope) -> No
     assert response.get("status") == "in_progress"
     documents = response.get("documents", [])
     assert len(documents) >= 1
+
+
+def test_get_envelope(client: PDFGate, created_envelope: PDFGateEnvelope) -> None:
+    created_envelope_id = cast(str, created_envelope.get("id"))
+
+    response = client.get_envelope(GetEnvelopeParams(envelope_id=created_envelope_id))
+
+    assert isinstance(response, dict)
+    assert response.get("id") == created_envelope_id
+    assert response.get("status") in {"created", "in_progress"}
+    documents = response.get("documents", [])
+    assert len(documents) >= 1
+    assert response.get("metadata") == {
+        "customer_id": "cus_123",
+        "department": "sales",
+    }

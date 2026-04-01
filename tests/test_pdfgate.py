@@ -17,6 +17,7 @@ from pdfgate.params import (
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
+    GetEnvelopeParams,
     SendEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
@@ -292,6 +293,48 @@ def test_send_envelope_returns_json(
         "department": "sales",
     }
     assert json.loads(route.calls.last.request.content.decode("utf-8")) == {}
+
+
+def test_get_envelope_returns_json(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    envelope_id = str(uuid.uuid4())
+    url = url_builder.get_envelope_url(envelope_id)
+    route = respx_mock.get(url)
+    response_json = {
+        "id": envelope_id,
+        "status": "in_progress",
+        "documents": [
+            {
+                "sourceDocumentId": str(uuid.uuid4()),
+                "recipients": [
+                    {
+                        "email": "anna@example.com",
+                        "status": "pending",
+                        "fields": [],
+                    }
+                ],
+                "status": "pending",
+            }
+        ],
+        "createdAt": datetime.now().isoformat(),
+        "metadata": {"customerId": "cus_123", "department": "sales"},
+    }
+    route.mock(return_value=httpx.Response(200, json=response_json))
+
+    response = client.get_envelope(GetEnvelopeParams(envelope_id=envelope_id))
+
+    assert isinstance(response, dict)
+    assert response.get("id") == envelope_id
+    assert response.get("status") == "in_progress"
+    assert response.get("created_at") == response_json["createdAt"]
+    assert response.get("metadata") == {
+        "customer_id": "cus_123",
+        "department": "sales",
+    }
+    assert route.calls.last.request.content == b""
 
 
 def test_upload_file_sends_multipart_when_file_is_present(

@@ -112,6 +112,13 @@ class GetFileParams(PDFGateParams):
 
 
 @dataclass
+class GetEnvelopeParams(PDFGateParams):
+    """Parameters for fetching an envelope's current state."""
+
+    envelope_id: str
+
+
+@dataclass
 class UploadFileParams(PDFGateParams):
     """Parameters for uploading a raw PDF file to PDFGate"""
 

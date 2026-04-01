@@ -96,6 +96,18 @@ class URLBuilder:
         """
         return f"{self.domain}/envelope"
 
+    def get_envelope_url(self, envelope_id: str) -> str:
+        """Build the URL for fetching an envelope.
+
+        Args:
+            envelope_id:
+                ID of the envelope to fetch.
+
+        Returns:
+            Full URL to fetch an envelope.
+        """
+        return f"{self.domain}/envelope/{envelope_id}"
+
     def send_envelope_url(self, envelope_id: str) -> str:
         """Build the URL for sending an envelope.
 
