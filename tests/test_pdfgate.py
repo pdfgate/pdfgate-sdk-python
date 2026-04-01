@@ -1,4 +1,6 @@
 from datetime import datetime
+import hashlib
+import hmac
 import json
 import random
 from typing import TypedDict, Union
@@ -7,8 +9,13 @@ import httpx
 import pytest
 import respx
 from pdfgate.config import Config
-from pdfgate.errors import PDFGateError, ParamsValidationError
+from pdfgate.errors import (
+    PDFGateError,
+    ParamsValidationError,
+    WebhookSignatureVerificationError,
+)
 from pdfgate.http_client import PDFGateHTTPClientSync
+from pdfgate import verify_signature
 from pdfgate.params import (
     CreateEnvelopeParams,
     EnvelopeDocument,
@@ -174,6 +181,103 @@ def test_generate_pdf_raises_when_neither_html_nor_url_provided(
 
     with pytest.raises(ParamsValidationError):
         client.generate_pdf(params)
+
+
+def build_signature_header(secret: str, timestamp: int, payload: bytes) -> str:
+    signed_payload = f"{timestamp}.{payload.decode('utf-8')}"
+    signature = hmac.new(
+        secret.encode("utf-8"),
+        signed_payload.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return f"t={timestamp},v1={signature}"
+
+
+def test_verify_signature_accepts_valid_signature(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "whsecret_test"
+    payload = b'{"type":"document.completed"}'
+    timestamp = 1_712_345_678
+    signature_header = build_signature_header(secret, timestamp, payload)
+    monkeypatch.setattr("pdfgate.webhooks.time.time", lambda: timestamp)
+
+    verify_signature(
+        secret=secret,
+        signature_header=signature_header,
+        payload=payload,
+    )
+
+
+def test_verify_signature_accepts_any_matching_v1_signature(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "whsecret_test"
+    payload = b'{"type":"document.completed"}'
+    timestamp = 1_712_345_678
+    valid_header = build_signature_header(secret, timestamp, payload)
+    signature_header = (
+        f"t={timestamp},v1=invalidsignature,{valid_header.split(',', 1)[1]}"
+    )
+    monkeypatch.setattr("pdfgate.webhooks.time.time", lambda: timestamp)
+
+    verify_signature(
+        secret=secret,
+        signature_header=signature_header,
+        payload=payload,
+    )
+
+
+@pytest.mark.parametrize(
+    "signature_header, match",
+    [
+        ("", "Missing webhook signature header"),
+        ("v1=abc123", "Missing timestamp or v1 signature"),
+        ("t=abc,v1=abc123", "Invalid webhook signature timestamp"),
+    ],
+)
+def test_verify_signature_raises_for_malformed_header(
+    signature_header: str, match: str
+) -> None:
+    with pytest.raises(WebhookSignatureVerificationError, match=match):
+        verify_signature(
+            secret="whsecret_test",
+            signature_header=signature_header,
+            payload=b"{}",
+        )
+
+
+def test_verify_signature_raises_when_signature_is_expired(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "whsecret_test"
+    payload = b'{"type":"document.completed"}'
+    timestamp = 1_712_345_678
+    signature_header = build_signature_header(secret, timestamp, payload)
+    monkeypatch.setattr(
+        "pdfgate.webhooks.time.time",
+        lambda: timestamp + Config.WEBHOOK_SIGNATURE_TOLERANCE_SECONDS + 1,
+    )
+
+    with pytest.raises(WebhookSignatureVerificationError, match="expired"):
+        verify_signature(
+            secret=secret,
+            signature_header=signature_header,
+            payload=payload,
+        )
+
+
+def test_verify_signature_raises_when_signature_is_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("pdfgate.webhooks.time.time", lambda: 1_712_345_678)
+
+    with pytest.raises(WebhookSignatureVerificationError, match="Invalid webhook"):
+        verify_signature(
+            secret="whsecret_test",
+            signature_header="t=1712345678,v1=deadbeef",
+            payload=b'{"type":"document.completed"}',
+        )
 
 
 def test_generate_pdf_returns_json(

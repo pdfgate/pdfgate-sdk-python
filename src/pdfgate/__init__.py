@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MIT
 
 from .pdfgate import PDFGate
+from .webhooks import verify_signature
+from .errors import WebhookSignatureVerificationError
 from .params import (
     PageSizeType,
     FileOrientation,
@@ -47,6 +49,8 @@ from .responses import (
 
 __all__ = [
     "PDFGate",
+    "verify_signature",
+    "WebhookSignatureVerificationError",
     "PageSizeType",
     "FileOrientation",
     "EmulateMediaType",
