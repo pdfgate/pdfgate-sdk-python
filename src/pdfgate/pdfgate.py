@@ -14,6 +14,7 @@ from .params import (
     GetDocumentParams,
     GetFileParams,
     ProtectPDFParams,
+    SendEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
 )
@@ -377,6 +378,32 @@ class PDFGate:
             The created envelope in ``created`` status.
         """
         request = self.request_builder.build_create_envelope(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    def send_envelope(self, params: SendEnvelopeParams) -> PDFGateEnvelope:
+        """Send a signing envelope to all configured recipients.
+
+        Args:
+            params: Envelope send parameters including the envelope ID.
+
+        Returns:
+            The updated envelope in ``in_progress`` or a later status.
+        """
+        request = self.request_builder.build_send_envelope(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    async def send_envelope_async(self, params: SendEnvelopeParams) -> PDFGateEnvelope:
+        """Send a signing envelope to all configured recipients.
+
+        Args:
+            params: Envelope send parameters including the envelope ID.
+
+        Returns:
+            The updated envelope in ``in_progress`` or a later status.
+        """
+        request = self.request_builder.build_send_envelope(params)
         response = await self.async_client.try_make_request_async(request=request)
         return ResponseBuilder.build_envelope_response(response)
 

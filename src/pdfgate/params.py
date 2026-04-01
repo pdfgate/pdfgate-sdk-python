@@ -254,6 +254,13 @@ class CreateEnvelopeParams(PDFGateParams):
 
 
 @dataclass
+class SendEnvelopeParams(PDFGateParams):
+    """Parameters for sending a signing envelope to its recipients."""
+
+    envelope_id: str
+
+
+@dataclass
 class WatermarkPDFParams(PDFGateParams):
     """Parameters for watermarking a PDF by document ID."""
 

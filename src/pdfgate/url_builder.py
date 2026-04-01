@@ -95,3 +95,15 @@ class URLBuilder:
             Full URL to create an envelope.
         """
         return f"{self.domain}/envelope"
+
+    def send_envelope_url(self, envelope_id: str) -> str:
+        """Build the URL for sending an envelope.
+
+        Args:
+            envelope_id:
+                ID of the envelope to send.
+
+        Returns:
+            Full URL to send an envelope.
+        """
+        return f"{self.domain}/envelope/{envelope_id}/send"

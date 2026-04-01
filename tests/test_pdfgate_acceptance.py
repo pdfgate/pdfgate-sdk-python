@@ -1,6 +1,7 @@
 import io
 import os
 import sys
+import time
 from typing import Any, TypedDict, cast
 import uuid
 
@@ -21,13 +22,14 @@ from pdfgate.params import (
     PageSizeType,
     PdfPageMargin,
     ProtectPDFParams,
+    SendEnvelopeParams,
     UploadFileParams,
     Viewport,
     WatermarkPDFParams,
     WatermarkType,
 )
 from pdfgate.pdfgate import PDFGate
-from pdfgate.responses import PDFGateDocument
+from pdfgate.responses import PDFGateDocument, PDFGateEnvelope
 
 
 @pytest.fixture(scope="module")
@@ -97,6 +99,28 @@ def envelope_document_id(client: PDFGate) -> str:
         )
     )
     return cast(str, document_response.get("id"))
+
+
+@pytest.fixture(scope="module")
+def created_envelope(client: PDFGate, envelope_document_id: str) -> PDFGateEnvelope:
+    return client.create_envelope(
+        CreateEnvelopeParams(
+            requester_name="John Doe",
+            documents=[
+                EnvelopeDocument(
+                    source_document_id=envelope_document_id,
+                    name="Employment Agreement",
+                    recipients=[
+                        EnvelopeRecipient(
+                            email="anna@example.com",
+                            name="Anna Smith",
+                        )
+                    ],
+                )
+            ],
+            metadata={"customerId": "cus_123", "department": "sales"},
+        )
+    )
 
 
 @pytest.fixture(scope="module")
@@ -393,3 +417,16 @@ async def test_create_envelope_async(
         "customer_id": "cus_456",
         "department": "engineering",
     }
+
+
+def test_send_envelope(client: PDFGate, created_envelope: PDFGateEnvelope) -> None:
+    created_envelope_id = cast(str, created_envelope.get("id"))
+
+    time.sleep(1)  # Throttle to avoid rate limit errors
+    response = client.send_envelope(SendEnvelopeParams(envelope_id=created_envelope_id))
+
+    assert isinstance(response, dict)
+    assert response.get("id") == created_envelope_id
+    assert response.get("status") == "in_progress"
+    documents = response.get("documents", [])
+    assert len(documents) >= 1

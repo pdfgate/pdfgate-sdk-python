@@ -31,6 +31,7 @@ from .params import (
     EnvelopeRecipient,
     EnvelopeDocument,
     CreateEnvelopeParams,
+    SendEnvelopeParams,
 )
 from .responses import (
     DocumentStatus,
@@ -77,5 +78,6 @@ __all__ = [
     "EnvelopeRecipient",
     "EnvelopeDocument",
     "CreateEnvelopeParams",
+    "SendEnvelopeParams",
     "PDFGateEnvelope",
 ]
