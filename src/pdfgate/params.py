@@ -112,6 +112,13 @@ class GetFileParams(PDFGateParams):
 
 
 @dataclass
+class GetEnvelopeParams(PDFGateParams):
+    """Parameters for fetching an envelope's current state."""
+
+    envelope_id: str
+
+
+@dataclass
 class UploadFileParams(PDFGateParams):
     """Parameters for uploading a raw PDF file to PDFGate"""
 
@@ -251,6 +258,13 @@ class CreateEnvelopeParams(PDFGateParams):
     documents: list["EnvelopeDocument"]
     requester_name: str
     metadata: Optional[dict] = None
+
+
+@dataclass
+class SendEnvelopeParams(PDFGateParams):
+    """Parameters for sending a signing envelope to its recipients."""
+
+    envelope_id: str
 
 
 @dataclass

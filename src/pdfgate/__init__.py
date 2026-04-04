@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MIT
 
 from .pdfgate import PDFGate
+from .webhooks import verify_signature
+from .errors import WebhookSignatureVerificationError
 from .params import (
     PageSizeType,
     FileOrientation,
@@ -17,6 +19,7 @@ from .params import (
     GetDocumentParams,
     UploadFileParams,
     GetFileParams,
+    GetEnvelopeParams,
     GeneratePDFAuthentication,
     Viewport,
     GeneratePDFParams,
@@ -31,6 +34,7 @@ from .params import (
     EnvelopeRecipient,
     EnvelopeDocument,
     CreateEnvelopeParams,
+    SendEnvelopeParams,
 )
 from .responses import (
     DocumentStatus,
@@ -45,6 +49,8 @@ from .responses import (
 
 __all__ = [
     "PDFGate",
+    "verify_signature",
+    "WebhookSignatureVerificationError",
     "PageSizeType",
     "FileOrientation",
     "EmulateMediaType",
@@ -55,6 +61,7 @@ __all__ = [
     "PDFGateParams",
     "GetDocumentParams",
     "GetFileParams",
+    "GetEnvelopeParams",
     "GeneratePDFAuthentication",
     "Viewport",
     "GeneratePDFParams",
@@ -77,5 +84,6 @@ __all__ = [
     "EnvelopeRecipient",
     "EnvelopeDocument",
     "CreateEnvelopeParams",
+    "SendEnvelopeParams",
     "PDFGateEnvelope",
 ]

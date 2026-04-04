@@ -7,3 +7,7 @@ class PDFGateError(Exception):
 
 class ParamsValidationError(PDFGateError):
     """Raised when required parameters are missing or invalid."""
+
+
+class WebhookSignatureVerificationError(PDFGateError):
+    """Raised when a webhook signature is missing, expired, or invalid."""

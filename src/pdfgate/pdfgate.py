@@ -12,8 +12,10 @@ from .params import (
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
+    GetEnvelopeParams,
     GetFileParams,
     ProtectPDFParams,
+    SendEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
 )
@@ -364,6 +366,19 @@ class PDFGate:
         response = self.sync_client.try_make_request(request=request)
         return ResponseBuilder.build_envelope_response(response)
 
+    def get_envelope(self, params: GetEnvelopeParams) -> PDFGateEnvelope:
+        """Retrieve the current state of a signing envelope.
+
+        Args:
+            params: Envelope lookup parameters including the envelope ID.
+
+        Returns:
+            The current envelope state returned by the API.
+        """
+        request = self.request_builder.build_get_envelope(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
     async def create_envelope_async(
         self, params: CreateEnvelopeParams
     ) -> PDFGateEnvelope:
@@ -377,6 +392,45 @@ class PDFGate:
             The created envelope in ``created`` status.
         """
         request = self.request_builder.build_create_envelope(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    async def get_envelope_async(self, params: GetEnvelopeParams) -> PDFGateEnvelope:
+        """Retrieve the current state of a signing envelope.
+
+        Args:
+            params: Envelope lookup parameters including the envelope ID.
+
+        Returns:
+            The current envelope state returned by the API.
+        """
+        request = self.request_builder.build_get_envelope(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    def send_envelope(self, params: SendEnvelopeParams) -> PDFGateEnvelope:
+        """Send a signing envelope to all configured recipients.
+
+        Args:
+            params: Envelope send parameters including the envelope ID.
+
+        Returns:
+            The updated envelope in ``in_progress`` or a later status.
+        """
+        request = self.request_builder.build_send_envelope(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    async def send_envelope_async(self, params: SendEnvelopeParams) -> PDFGateEnvelope:
+        """Send a signing envelope to all configured recipients.
+
+        Args:
+            params: Envelope send parameters including the envelope ID.
+
+        Returns:
+            The updated envelope in ``in_progress`` or a later status.
+        """
+        request = self.request_builder.build_send_envelope(params)
         response = await self.async_client.try_make_request_async(request=request)
         return ResponseBuilder.build_envelope_response(response)
 

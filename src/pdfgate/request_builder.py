@@ -16,8 +16,10 @@ from pdfgate.params import (
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
+    GetEnvelopeParams,
     PDFGateParams,
     ProtectPDFParams,
+    SendEnvelopeParams,
     UploadFileParams,
     WatermarkType,
     WatermarkPDFParams,
@@ -207,6 +209,18 @@ class RequestBuilder:
         url = self.url_builder.envelope_url()
         body = pdfgate_params_to_params_dict(params)
         request = self._json_post_request(url=url, json=body)
+        return PDFGateRequest(request=request)
+
+    def build_get_envelope(self, params: GetEnvelopeParams) -> PDFGateRequest:
+        """Build a request to fetch a signing envelope."""
+        url = self.url_builder.get_envelope_url(params.envelope_id)
+        request = self._get_request(url=url)
+        return PDFGateRequest(request=request)
+
+    def build_send_envelope(self, params: SendEnvelopeParams) -> PDFGateRequest:
+        """Build a request to send a signing envelope to its recipients."""
+        url = self.url_builder.send_envelope_url(params.envelope_id)
+        request = self._json_post_request(url=url, json={})
         return PDFGateRequest(request=request)
 
     def build_upload_file(self, params: UploadFileParams) -> PDFGateRequest:

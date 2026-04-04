@@ -22,6 +22,7 @@ PDFGate lets you generate, process, and secure PDFs via a simple API:
 - [Quick start](#quick-start)
 - [Sync & Async](#sync--async)
 - [Responses](#responses)
+- [Webhook Verification](#webhook-verification)
 - [Examples](#examples)
 - [Development](#development)
 - [Support](#support)
@@ -74,6 +75,26 @@ The SDK returns a `PDFGateDocument` for all processing endpoints:
 - `upload_file`
 
 To get raw PDF bytes, call `get_file` with a document ID.
+
+# Webhook Verification
+
+Use `verify_signature` with the raw request body and the
+`x-pdfgate-signature` header value received from PDFGate:
+
+```python
+import json
+
+from pdfgate import verify_signature
+
+
+verify_signature(
+    secret="whsecret_...",
+    signature_header=request.headers["x-pdfgate-signature"],
+    payload=request_body,
+)
+
+event = json.loads(request_body)
+```
 
 # Examples
 
