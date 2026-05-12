@@ -2,18 +2,21 @@
 
 import hashlib
 import hmac
+import json
 import time
-from typing import Union
+from typing import Union, cast
 
 from .config import Config
+from .dict_keys_converter import convert_camel_keys_to_snake
 from .errors import WebhookSignatureVerificationError
+from .responses import WebhookEvent
 
 
 def verify_signature(
     secret: str,
     signature_header: str,
     payload: Union[bytes, str],
-) -> None:
+) -> WebhookEvent:
     """Verify a PDFGate webhook signature.
 
     Args:
@@ -23,6 +26,9 @@ def verify_signature(
             The raw ``x-pdfgate-signature`` header value.
         payload:
             The raw request body exactly as received.
+
+    Returns:
+        The verified webhook event parsed from the request payload.
 
     Raises:
         WebhookSignatureVerificationError:
@@ -70,6 +76,9 @@ def verify_signature(
 
     for signature in signatures:
         if hmac.compare_digest(signature, expected_signature):
-            return None
+            return cast(
+                WebhookEvent,
+                convert_camel_keys_to_snake(json.loads(payload_text)),
+            )
 
     raise WebhookSignatureVerificationError("Invalid webhook signature.")

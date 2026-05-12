@@ -240,6 +240,8 @@ class EnvelopeRecipient(PDFGateParams):
     email: str
     name: str
     role: Optional[str] = None
+    reminder_interval_days: Optional[int] = None
+    reminder_attempts: Optional[int] = None
 
 
 @dataclass

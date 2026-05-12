@@ -73,6 +73,8 @@ class EnvelopeRecipientResponse(TypedDict, total=False):
     signed_at: str
     viewed_at: str
     fields: list[EnvelopeFieldResponse]
+    signing_link: str
+    preview_link: str
 
 
 class EnvelopeDocumentResponse(TypedDict, total=False):
@@ -80,6 +82,7 @@ class EnvelopeDocumentResponse(TypedDict, total=False):
 
     source_document_id: str
     signed_document_id: str
+    audit_log_document_id: str
     recipients: list[EnvelopeRecipientResponse]
     status: EnvelopeDocumentStatus
     completed_at: str
@@ -109,3 +112,18 @@ class PDFGateDocument(TypedDict, total=False):
     size: Optional[int]
     metadata: Optional[dict[str, Any]]
     derived_from: Optional[str]
+
+
+class WebhookResource(TypedDict):
+    kind: str
+    id: str
+
+
+class WebhookEvent(TypedDict, total=False):
+    """Typed dictionary representing a PDFGate Webhook Event response."""
+
+    event_id: str
+    event: str
+    timestamp: str
+    resource: WebhookResource
+    data: dict[str, Any]

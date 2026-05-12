@@ -227,7 +227,6 @@ class RequestBuilder:
         """Build a request to upload a PDF file to the PDFGate storage"""
         url = self.url_builder.upload_file_url()
         params_dict = pdfgate_params_to_params_dict(params)
-        params_dict["jsonResponse"] = True
         if params.file:
             upload_file_param = self._build_file_param(params_dict.pop("file"), "file")
             request = self._multipart_post_request(

@@ -197,16 +197,27 @@ def test_verify_signature_accepts_valid_signature(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     secret = "whsecret_test"
-    payload = b'{"type":"document.completed"}'
+    payload = (
+        b'{"eventId":"evt_123","event":"document.completed",'
+        b'"timestamp":"2026-05-12T10:00:00Z",'
+        b'"resource":{"kind":"document","id":"doc_123"},'
+        b'"data":{"documentId":"doc_123"}}'
+    )
     timestamp = 1_712_345_678
     signature_header = build_signature_header(secret, timestamp, payload)
     monkeypatch.setattr("pdfgate.webhooks.time.time", lambda: timestamp)
 
-    verify_signature(
+    event = verify_signature(
         secret=secret,
         signature_header=signature_header,
         payload=payload,
     )
+
+    assert event.get("event_id") == "evt_123"
+    assert event.get("event") == "document.completed"
+    assert event.get("timestamp") == "2026-05-12T10:00:00Z"
+    assert event.get("resource") == {"kind": "document", "id": "doc_123"}
+    assert event.get("data") == {"document_id": "doc_123"}
 
 
 def test_verify_signature_accepts_any_matching_v1_signature(
@@ -221,11 +232,13 @@ def test_verify_signature_accepts_any_matching_v1_signature(
     )
     monkeypatch.setattr("pdfgate.webhooks.time.time", lambda: timestamp)
 
-    verify_signature(
+    event = verify_signature(
         secret=secret,
         signature_header=signature_header,
         payload=payload,
     )
+
+    assert event == {"type": "document.completed"}
 
 
 @pytest.mark.parametrize(
@@ -413,11 +426,14 @@ def test_get_envelope_returns_json(
         "documents": [
             {
                 "sourceDocumentId": str(uuid.uuid4()),
+                "auditLogDocumentId": str(uuid.uuid4()),
                 "recipients": [
                     {
                         "email": "anna@example.com",
                         "status": "pending",
                         "fields": [],
+                        "signingLink": "https://example.com/sign",
+                        "previewLink": "https://example.com/preview",
                     }
                 ],
                 "status": "pending",
@@ -438,6 +454,13 @@ def test_get_envelope_returns_json(
         "customer_id": "cus_123",
         "department": "sales",
     }
+    documents = response.get("documents", [])
+    assert len(documents) == 1
+    assert documents[0].get("audit_log_document_id") is not None
+    recipients = documents[0].get("recipients", [])
+    assert len(recipients) == 1
+    assert recipients[0].get("signing_link") == "https://example.com/sign"
+    assert recipients[0].get("preview_link") == "https://example.com/preview"
     assert route.calls.last.request.content == b""
 
 
@@ -474,7 +497,6 @@ def test_upload_file_sends_multipart_when_file_is_present(
     request_body = route.calls.last.request.content
     assert b'name="file"' in request_body
     assert b"input.pdf" in request_body
-    assert b'name="jsonResponse"' in request_body
     assert b'name="url"' in request_body
 
 
@@ -506,7 +528,6 @@ def test_upload_file_with_url_sends_json_and_default_timeout(
     assert str(route.calls.last.request.url) == url
     request_json = json.loads(route.calls.last.request.content.decode("utf-8"))
     assert request_json.get("url") == "https://example.com"
-    assert request_json.get("jsonResponse") is True
 
 
 def test_create_envelope_sends_correct_json(
@@ -553,6 +574,8 @@ def test_create_envelope_sends_correct_json(
                         email="anna@example.com",
                         name="Anna Smith",
                         role="signer",
+                        reminder_interval_days=3,
+                        reminder_attempts=2,
                     )
                 ],
             )
@@ -583,6 +606,8 @@ def test_create_envelope_sends_correct_json(
     assert recipients[0].get("email") == "anna@example.com"
     assert recipients[0].get("name") == "Anna Smith"
     assert recipients[0].get("role") == "signer"
+    assert recipients[0].get("reminderIntervalDays") == 3
+    assert recipients[0].get("reminderAttempts") == 2
 
 
 def test_create_envelope_omits_optional_fields(
@@ -621,6 +646,8 @@ def test_create_envelope_omits_optional_fields(
     assert "metadata" not in request_body
     recipients = request_body["documents"][0]["recipients"]
     assert "role" not in recipients[0]
+    assert "reminderIntervalDays" not in recipients[0]
+    assert "reminderAttempts" not in recipients[0]
 
 
 @pytest.mark.asyncio

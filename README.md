@@ -1,19 +1,14 @@
 # PDFGate's official Python SDK
 
-PDFGate lets you generate, process, and secure PDFs via a simple API:
-
-- HTML or URL to PDF
-- Fillable forms
-- Flatten, compress, watermark, protect PDFs
-- Extract PDF form data
+The PDFGate Python SDK provides convenient access to the PDFGate API from applications written in Python. It includes typed parameter objects, synchronous and asynchronous clients, response helpers, and webhook signature verification for common PDF generation, processing, and signing workflows.
 
 📘 Documentation: https://pdfgate.com/documentation<br>
 🔑 Dashboard & API keys: https://dashboard.pdfgate.com
 
-## pdfgate-sdk-python
+## pdfgate
 
-[![PyPI - Version](https://img.shields.io/pypi/v/pdfgate-sdk-python.svg)](https://pypi.org/project/pdfgate-sdk-python)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pdfgate-sdk-python.svg)](https://pypi.org/project/pdfgate-sdk-python)
+[![PyPI - Version](https://img.shields.io/pypi/v/pdfgate.svg)](https://pypi.org/project/pdfgate)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pdfgate.svg)](https://pypi.org/project/pdfgate)
 
 
 ## Table of Contents
@@ -42,7 +37,7 @@ import os
 from pdfgate import PDFGate, GeneratePDFParams
 
 
-client = PDFGate(api_key=os.getenv("PDFGATE_API_KEY"))
+client = PDFGate(api_key=os.environ["PDFGATE_API_KEY"])
 params = GeneratePDFParams(url="https://example.com")
 document = client.generate_pdf(params)
 
@@ -82,18 +77,16 @@ Use `verify_signature` with the raw request body and the
 `x-pdfgate-signature` header value received from PDFGate:
 
 ```python
-import json
-
 from pdfgate import verify_signature
 
 
-verify_signature(
+event = verify_signature(
     secret="whsecret_...",
     signature_header=request.headers["x-pdfgate-signature"],
     payload=request_body,
 )
 
-event = json.loads(request_body)
+event_id = event["event_id"]
 ```
 
 # Examples
@@ -111,14 +104,9 @@ print(document["id"])
 ```python
 document_response = client.get_document(GetDocumentParams(document_id=document_id))
 
-assert document_response = {
-    "id" : "6642381c5c61"
-    "status" : DocumentStatus.COMPLETED
-    "type" : DocumentType.FROM_HTML,
-    "file_url" : "https://api.pdfgate.com/file/open/:preSignedUrlToken"
-    "size" : 1620006
-    "createdAt" : datetime(2024,02,13, 15, 56, 12, 607)"
-}
+print(document_response["id"])
+print(document_response["status"])
+print(document_response.get("file_url"))
 ```
 
 ## Download a stored PDF file
@@ -173,8 +161,8 @@ watermarked_pdf = client.watermark_pdf(watermark_pdf_params)
 ```python
 protect_pdf_params = ProtectPDFParams(
     document_id=document_id,
-    user_password=str(uuid.uuid4()),
-    owner_password=str(uuid.uuid4()),
+    user_password="user-password",
+    owner_password="owner-password",
 )
 response = client.protect_pdf(protect_pdf_params)
 ```
@@ -183,19 +171,19 @@ response = client.protect_pdf(protect_pdf_params)
 
 ```python
 html_form = """
-    <form>
-        <input type='text' name='first_name' value='John'/>
-        <input type='text' name='last_name' value='Doe'/>
-    </form>
-    """
+<form>
+    <input type="text" name="first_name" value="John" />
+    <input type="text" name="last_name" value="Doe" />
+</form>
+"""
 generate_pdf_params = GeneratePDFParams(
     html=html_form, enable_form_fields=True
 )
-document_response = cast(PDFGateDocument, client.generate_pdf(generate_pdf_params))
-document_id = cast(str, document_response.get("id"))
+document_response = client.generate_pdf(generate_pdf_params)
+document_id = document_response["id"]
 
 extract_form_params = ExtractPDFFormDataParams(document_id=document_id)
-response = cast(dict[str, Any], client.extract_pdf_form_data(extract_form_params))
+response = client.extract_pdf_form_data(extract_form_params)
 ```
 
 # Development
@@ -242,7 +230,7 @@ hatch run dev:ruff format .
 
 ## Type checking
 
-Manually mypy for type checking:
+Run mypy manually:
 
 ```sh
 hatch run dev:check
@@ -250,7 +238,7 @@ hatch run dev:check
 
 ## Docs
 
-Docs are build using [MkDocs](https://www.mkdocs.org/), they live in the `docs/` folder, and in the code. If you make any changes, and would like to see them live before publishing them, spin up a server locally with:
+Docs are built using [MkDocs](https://www.mkdocs.org/), they live in the `docs/` folder, and in the code. If you make any changes, and would like to see them live before publishing them, spin up a server locally with:
 
 ```sh
 hatch run docs:serve
@@ -262,11 +250,10 @@ Changes to `docs/**` and `mkdocs.yml` trigger a new deployment of the docs site.
 hatch run docs:mkdocs gh-deploy
 ```
 
-# Support
+## Support
 
-📧 Email: support@pdfgate.com<br>
-📘 Docs: https://pdfgate.com/documentation
+For support, contact [support@pdfgate.com](mailto:support@pdfgate.com).
 
 ## License
 
-`pdfgate-sdk-python` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+`pdfgate` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.

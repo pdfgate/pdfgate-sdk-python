@@ -11,8 +11,7 @@ requires-python = ">=3.9"
 license = "MIT"
 keywords = []
 authors = [
-  { name = "Fernando Gasperi", email = "fgasperijabalera@gmail.com" },
-  { name = "Demetra Theodorou", email = "demtra@pdfgate.com" },
+  { name = "PDFGate", email = "support@pdfgate.com" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
