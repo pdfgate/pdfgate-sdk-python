@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, NamedTuple, Optional
 
+from .responses import DocumentFieldType, WebhookEventType
+
 
 class PageSizeType(Enum):
     """Supported page sizes for generated PDFs."""
@@ -184,8 +186,61 @@ class FlattenPDFParams(PDFGateParams):
     """Parameters for flattening a PDF by document ID."""
 
     document_id: Optional[str] = None
+    field_names: Optional[list[str]] = None
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
+
+
+@dataclass
+class FieldOverride:
+    """Overrides applied to a placeholder field detected in the PDF."""
+
+    options: Optional[list[str]] = None
+    height: Optional[int] = None
+    width: Optional[int] = None
+    role: Optional[str] = None
+    font_size: Optional[int] = None
+    auto_fill: Optional[bool] = None
+    optional: Optional[bool] = None
+    description: Optional[str] = None
+
+
+@dataclass
+class ManualFormField:
+    """A form field placed at an explicit position on a given page."""
+
+    name: str
+    type: DocumentFieldType
+    page: int
+    height: int
+    width: int
+    x: float
+    y: float
+    value: Optional[str] = None
+    options: Optional[list[str]] = None
+    role: Optional[str] = None
+    font_size: Optional[int] = None
+    auto_fill: Optional[bool] = None
+    optional: Optional[bool] = None
+    description: Optional[str] = None
+
+
+@dataclass
+class AddFormFieldsParams(PDFGateParams):
+    """Parameters for adding interactive form fields to a PDF by document ID."""
+
+    document_id: Optional[str] = None
+    field_overrides: Optional[dict[str, FieldOverride]] = None
+    fields: Optional[list[ManualFormField]] = None
+    pre_signed_url_expires_in: Optional[int] = None
+    metadata: Optional[Any] = None
+
+
+@dataclass
+class DeleteDocumentParams(PDFGateParams):
+    """Parameters for deleting a stored document by ID."""
+
+    document_id: str
 
 
 @dataclass
@@ -288,3 +343,26 @@ class WatermarkPDFParams(PDFGateParams):
     rotate: Optional[float] = None
     pre_signed_url_expires_in: Optional[int] = None
     metadata: Optional[Any] = None
+
+
+@dataclass
+class CreateWebhookParams(PDFGateParams):
+    """Parameters for registering a webhook endpoint."""
+
+    url: str
+    event_types: list[WebhookEventType]
+    description: Optional[str] = None
+
+
+@dataclass
+class GetWebhookParams(PDFGateParams):
+    """Parameters for fetching a webhook by ID."""
+
+    webhook_id: str
+
+
+@dataclass
+class DeleteWebhookParams(PDFGateParams):
+    """Parameters for deleting a webhook by ID."""
+
+    webhook_id: str

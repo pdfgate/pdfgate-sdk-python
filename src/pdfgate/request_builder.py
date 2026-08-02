@@ -9,14 +9,19 @@ from pdfgate.config import Config
 from pdfgate.dict_keys_converter import convert_snake_keys_to_camel, remove_none_values
 from pdfgate.errors import PDFGateError
 from pdfgate.params import (
+    AddFormFieldsParams,
     CompressPDFParams,
     CreateEnvelopeParams,
+    CreateWebhookParams,
+    DeleteDocumentParams,
+    DeleteWebhookParams,
     ExtractPDFFormDataParams,
     FileParam,
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
     GetEnvelopeParams,
+    GetWebhookParams,
     PDFGateParams,
     ProtectPDFParams,
     SendEnvelopeParams,
@@ -95,6 +100,10 @@ class RequestBuilder:
             "POST", url=url, headers=self.get_headers(), data=data, files=files
         )
 
+    def _delete_request(self, url: str) -> httpx.Request:
+        """Create a DELETE request with standard headers."""
+        return httpx.Request("DELETE", url=url, headers=self.get_headers())
+
     def _build_file_param(
         self, file_param: FileParam, key: str
     ) -> dict[str, FormDataFileParam]:
@@ -149,6 +158,36 @@ class RequestBuilder:
         )
 
         return PDFGateRequest(request=request, timeout=timeout)
+
+    def build_add_form_fields(self, params: AddFormFieldsParams) -> PDFGateRequest:
+        """Build a request to add form fields to a PDF by document ID."""
+        url = self.url_builder.add_form_fields_url()
+        params_without_nulls = pdfgate_params_to_params_dict(params)
+        # ``field_overrides`` is keyed by the user's actual PDF field names, so its
+        # top-level keys must be preserved verbatim (only the override options are
+        # converted to camelCase).
+        if params.field_overrides is not None:
+            params_without_nulls["fieldOverrides"] = {
+                field_name: convert_snake_keys_to_camel(
+                    remove_none_values(asdict(override))
+                )
+                for field_name, override in params.field_overrides.items()
+            }
+        params_without_nulls["jsonResponse"] = True
+
+        request = self._json_post_request(url, json=params_without_nulls)
+        timeout = int(
+            timedelta(minutes=Config.FLATTEN_PDF_TIMEOUT_MINUTES).total_seconds()
+        )
+
+        return PDFGateRequest(request=request, timeout=timeout)
+
+    def build_delete_document(self, params: DeleteDocumentParams) -> PDFGateRequest:
+        """Build a request to delete a stored document by ID."""
+        url = self.url_builder.get_document_url(params.document_id)
+        request = self._delete_request(url)
+
+        return PDFGateRequest(request=request)
 
     def build_extract_pdf_form_data(
         self, params: ExtractPDFFormDataParams
@@ -221,6 +260,25 @@ class RequestBuilder:
         """Build a request to send a signing envelope to its recipients."""
         url = self.url_builder.send_envelope_url(params.envelope_id)
         request = self._json_post_request(url=url, json={})
+        return PDFGateRequest(request=request)
+
+    def build_create_webhook(self, params: CreateWebhookParams) -> PDFGateRequest:
+        """Build a request to register a webhook endpoint."""
+        url = self.url_builder.webhook_url()
+        body = pdfgate_params_to_params_dict(params)
+        request = self._json_post_request(url=url, json=body)
+        return PDFGateRequest(request=request)
+
+    def build_get_webhook(self, params: GetWebhookParams) -> PDFGateRequest:
+        """Build a request to fetch a webhook by ID."""
+        url = self.url_builder.get_webhook_url(params.webhook_id)
+        request = self._get_request(url=url)
+        return PDFGateRequest(request=request)
+
+    def build_delete_webhook(self, params: DeleteWebhookParams) -> PDFGateRequest:
+        """Build a request to delete a webhook by ID."""
+        url = self.url_builder.get_webhook_url(params.webhook_id)
+        request = self._delete_request(url)
         return PDFGateRequest(request=request)
 
     def build_upload_file(self, params: UploadFileParams) -> PDFGateRequest:

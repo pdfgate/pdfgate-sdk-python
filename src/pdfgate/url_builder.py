@@ -56,6 +56,14 @@ class URLBuilder:
         """
         return f"{self.domain}/forms/extract-data"
 
+    def add_form_fields_url(self) -> str:
+        """Build the URL for adding form fields to a PDF.
+
+        Returns:
+            Full URL to add form fields.
+        """
+        return f"{self.domain}/forms/fields"
+
     def protect_pdf_url(self) -> str:
         """Build the URL for encrypting a PDF.
 
@@ -119,3 +127,23 @@ class URLBuilder:
             Full URL to send an envelope.
         """
         return f"{self.domain}/envelope/{envelope_id}/send"
+
+    def webhook_url(self) -> str:
+        """Build the URL for creating a webhook.
+
+        Returns:
+            Full URL to create a webhook.
+        """
+        return f"{self.domain}/webhook"
+
+    def get_webhook_url(self, webhook_id: str) -> str:
+        """Build the URL for fetching or deleting a webhook.
+
+        Args:
+            webhook_id:
+                ID of the webhook.
+
+        Returns:
+            Full URL to fetch or delete a webhook.
+        """
+        return f"{self.domain}/webhook/{webhook_id}"

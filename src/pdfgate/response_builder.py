@@ -5,7 +5,7 @@ from typing import Any, cast
 import httpx
 
 from pdfgate.dict_keys_converter import convert_camel_keys_to_snake
-from pdfgate.responses import PDFGateDocument, PDFGateEnvelope
+from pdfgate.responses import PDFGateDocument, PDFGateEnvelope, WebhookResponse
 
 
 class ResponseBuilder:
@@ -27,3 +27,8 @@ class ResponseBuilder:
     def build_document_response(response: httpx.Response) -> PDFGateDocument:
         """Convert an HTTP response into a `PDFGateDocument`."""
         return cast(PDFGateDocument, ResponseBuilder.build_json_response(response))
+
+    @staticmethod
+    def build_webhook_response(response: httpx.Response) -> WebhookResponse:
+        """Convert an HTTP response into a `WebhookResponse`."""
+        return cast(WebhookResponse, ResponseBuilder.build_json_response(response))
