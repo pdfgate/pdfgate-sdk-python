@@ -16,14 +16,19 @@ class DocumentType(Enum):
     """Document types reported by the PDFGate API."""
 
     FROM_HTML = "from_html"
+    UPLOADED = "uploaded"
     FLATTENED = "flattened"
     WATERMARKED = "watermarked"
     ENCRYPTED = "encrypted"
     COMPRESSED = "compressed"
     SIGNED = "signed"
+    SIGNATURE_AUDIT_LOG = "signature_audit_log"
+    DOCUMENT_FIELDS_ADDED = "document_fields_added"
+    SIGNING_TEMPLATE = "signing_template"
 
 
 class EnvelopeStatus(Enum):
+    DRAFT = "draft"
     CREATED = "created"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -32,6 +37,7 @@ class EnvelopeStatus(Enum):
 
 class EnvelopeDocumentStatus(Enum):
     PENDING = "pending"
+    EXPIRED = "expired"
     SENT_FOR_SIGNING = "sent_for_signing"
     SIGNING_IN_PROGRESS = "signing_in_progress"
     SIGNING_FAILED = "signing_failed"
@@ -40,7 +46,22 @@ class EnvelopeDocumentStatus(Enum):
 
 class DocumentRecipientStatus(Enum):
     PENDING = "pending"
+    EXPIRED = "expired"
     SIGNED = "signed"
+
+
+class WebhookStatus(Enum):
+    ACTIVE = "active"
+    DISABLED = "disabled"
+
+
+class WebhookEventType(Enum):
+    """Events that a webhook can subscribe to."""
+
+    ENVELOPE_SENT = "envelope.sent"
+    ENVELOPE_COMPLETED = "envelope.completed"
+    ENVELOPE_EXPIRED = "envelope.expired"
+    ENVELOPE_DOCUMENT_COMPLETED = "envelope.document.completed"
 
 
 class DocumentFieldType(Enum):
@@ -63,6 +84,10 @@ class EnvelopeFieldResponse(TypedDict, total=False):
     type: DocumentFieldType
     value: Any
     checked: bool
+    timezone: str
+    source: str
+    user_value: str
+    user_timezone: str
 
 
 class EnvelopeRecipientResponse(TypedDict, total=False):
@@ -112,6 +137,19 @@ class PDFGateDocument(TypedDict, total=False):
     size: Optional[int]
     metadata: Optional[dict[str, Any]]
     derived_from: Optional[str]
+
+
+class WebhookResponse(TypedDict, total=False):
+    """Typed dictionary representing a PDFGate webhook."""
+
+    id: str
+    url: str
+    event_types: list[WebhookEventType]
+    status: WebhookStatus
+    description: Optional[str]
+    secret: Optional[str]
+    created_at: str
+    updated_at: Optional[str]
 
 
 class WebhookResource(TypedDict):

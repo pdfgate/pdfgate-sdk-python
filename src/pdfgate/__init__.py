@@ -35,6 +35,13 @@ from .params import (
     EnvelopeDocument,
     CreateEnvelopeParams,
     SendEnvelopeParams,
+    AddFormFieldsParams,
+    FieldOverride,
+    ManualFormField,
+    DeleteDocumentParams,
+    CreateWebhookParams,
+    GetWebhookParams,
+    DeleteWebhookParams,
 )
 from .responses import (
     DocumentStatus,
@@ -45,6 +52,10 @@ from .responses import (
     DocumentFieldType,
     PDFGateDocument,
     PDFGateEnvelope,
+    WebhookStatus,
+    WebhookEventType,
+    WebhookResponse,
+    WebhookEvent,
 )
 
 __all__ = [
@@ -86,4 +97,15 @@ __all__ = [
     "CreateEnvelopeParams",
     "SendEnvelopeParams",
     "PDFGateEnvelope",
+    "AddFormFieldsParams",
+    "FieldOverride",
+    "ManualFormField",
+    "DeleteDocumentParams",
+    "CreateWebhookParams",
+    "GetWebhookParams",
+    "DeleteWebhookParams",
+    "WebhookStatus",
+    "WebhookEventType",
+    "WebhookResponse",
+    "WebhookEvent",
 ]

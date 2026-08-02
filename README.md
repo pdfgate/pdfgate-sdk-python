@@ -1,6 +1,6 @@
 # PDFGate's official Python SDK
 
-The PDFGate Python SDK provides convenient access to the PDFGate API from applications written in Python. It includes typed parameter objects, synchronous and asynchronous clients, response helpers, and webhook signature verification for common PDF generation, processing, and signing workflows.
+The PDFGate Python SDK provides convenient access to the PDFGate API from applications written in Python. It includes typed parameter objects, synchronous and asynchronous clients, response helpers, webhook management, and webhook signature verification for common PDF generation, processing, and signing workflows.
 
 📘 Documentation: https://pdfgate.com/documentation<br>
 🔑 Dashboard & API keys: https://dashboard.pdfgate.com
@@ -17,6 +17,7 @@ The PDFGate Python SDK provides convenient access to the PDFGate API from applic
 - [Quick start](#quick-start)
 - [Sync & Async](#sync--async)
 - [Responses](#responses)
+- [Managing Webhooks](#managing-webhooks)
 - [Webhook Verification](#webhook-verification)
 - [Examples](#examples)
 - [Development](#development)
@@ -64,12 +65,57 @@ The SDK returns a `PDFGateDocument` for all processing endpoints:
 
 - `generate_pdf`
 - `flatten_pdf`
+- `add_form_fields`
 - `compress_pdf`
 - `watermark_pdf`
 - `protect_pdf`
 - `upload_file`
 
 To get raw PDF bytes, call `get_file` with a document ID.
+`delete_document` returns `None`.
+
+Webhook management methods (`create_webhook`, `get_webhook`) return a
+`WebhookResponse`; `delete_webhook` returns `None`.
+
+Every method has an `async` counterpart (e.g. `add_form_fields_async`,
+`delete_document_async`, `create_webhook_async`).
+
+# Managing Webhooks
+
+Register, retrieve, and delete webhook endpoints that receive PDFGate event
+notifications. The `secret` returned by `create_webhook` is shown only once —
+store it to verify incoming payloads.
+
+```python
+from pdfgate import (
+    CreateWebhookParams,
+    DeleteWebhookParams,
+    GetWebhookParams,
+    WebhookEventType,
+)
+
+created = client.create_webhook(
+    CreateWebhookParams(
+        url="https://example.com/pdfgate-callback",
+        event_types=[
+            WebhookEventType.ENVELOPE_COMPLETED,
+            WebhookEventType.ENVELOPE_SENT,
+        ],
+        description="Production signing events",
+    )
+)
+webhook_id = created["id"]
+secret = created["secret"]
+
+fetched = client.get_webhook(GetWebhookParams(webhook_id=webhook_id))
+
+client.delete_webhook(DeleteWebhookParams(webhook_id=webhook_id))
+```
+
+The subscribable events are exposed via `WebhookEventType`:
+`ENVELOPE_SENT`, `ENVELOPE_COMPLETED`, `ENVELOPE_EXPIRED`, and
+`ENVELOPE_DOCUMENT_COMPLETED`. The webhook URL must be publicly accessible
+(localhost is not supported).
 
 # Webhook Verification
 
@@ -131,10 +177,55 @@ If both `file` and `url` are provided, `file` is prioritized and the request is 
 
 ```python
 flatten_pdf_params = FlattenPDFParams(
-    document_id=document_id
+    document_id=document_id,
+    # Optional: flatten only these fields and leave the rest interactive.
+    # Omit field_names to flatten the whole document.
+    field_names=["signature", "date"],
 )
 flattened_document = client.flatten_pdf(flatten_pdf_params)
 ```
+
+## Add form fields to a PDF
+
+```python
+from pdfgate import (
+    AddFormFieldsParams,
+    DocumentFieldType,
+    FieldOverride,
+    ManualFormField,
+)
+
+response = client.add_form_fields(
+    AddFormFieldsParams(
+        document_id=document_id,
+        # Customize placeholder fields detected in the PDF, keyed by field name.
+        field_overrides={"signature": FieldOverride(role="signer", optional=False)},
+        # Or place fields at explicit positions on a given page.
+        fields=[
+            ManualFormField(
+                name="signed_on",
+                type=DocumentFieldType.DATE,
+                page=1,
+                x=100,
+                y=650,
+                width=160,
+                height=24,
+            )
+        ],
+    )
+)
+```
+
+## Delete a stored document
+
+```python
+from pdfgate import DeleteDocumentParams
+
+client.delete_document(DeleteDocumentParams(document_id=document_id))
+```
+
+A document referenced by a draft or in-progress envelope cannot be deleted until
+those envelopes are completed or expired.
 
 ## Compress a PDF
 

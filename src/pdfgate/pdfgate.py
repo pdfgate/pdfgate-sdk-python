@@ -6,20 +6,25 @@ from pdfgate.response_builder import ResponseBuilder
 
 from .errors import ParamsValidationError
 from .params import (
+    AddFormFieldsParams,
     CompressPDFParams,
     CreateEnvelopeParams,
+    CreateWebhookParams,
+    DeleteDocumentParams,
+    DeleteWebhookParams,
     ExtractPDFFormDataParams,
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
     GetEnvelopeParams,
     GetFileParams,
+    GetWebhookParams,
     ProtectPDFParams,
     SendEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
 )
-from .responses import PDFGateDocument, PDFGateEnvelope
+from .responses import PDFGateDocument, PDFGateEnvelope, WebhookResponse
 
 
 class PDFGate:
@@ -167,6 +172,9 @@ class PDFGate:
     async def flatten_pdf_async(self, params: FlattenPDFParams) -> PDFGateDocument:
         """Flatten an interactive PDF into a static, non-editable PDF.
 
+        Provide ``field_names`` to flatten only those specific form fields while
+        leaving the rest of the form interactive; omit it to flatten everything.
+
         Args:
             params: A `FlattenPDFParams` instance.
 
@@ -178,6 +186,78 @@ class PDFGate:
         result = ResponseBuilder.build_document_response(response)
 
         return result
+
+    def add_form_fields(self, params: AddFormFieldsParams) -> PDFGateDocument:
+        """Add interactive form fields to a PDF.
+
+        Two complementary ways to add fields:
+            - ``field_overrides``: customize placeholder fields detected in the PDF,
+              keyed by field name.
+            - ``fields``: place fields at explicit ``x``/``y`` positions on a page.
+
+        PDFGate creates a new document with the added fields (the original is
+        left untouched).
+
+        Args:
+            params: An `AddFormFieldsParams` instance.
+
+        Returns:
+            A `PDFGateDocument` instance.
+        """
+        request = self.request_builder.build_add_form_fields(params)
+        response = self.sync_client.try_make_request(request)
+        result = ResponseBuilder.build_document_response(response)
+
+        return result
+
+    async def add_form_fields_async(
+        self, params: AddFormFieldsParams
+    ) -> PDFGateDocument:
+        """Add interactive form fields to a PDF.
+
+        Two complementary ways to add fields:
+            - ``field_overrides``: customize placeholder fields detected in the PDF,
+              keyed by field name.
+            - ``fields``: place fields at explicit ``x``/``y`` positions on a page.
+
+        PDFGate creates a new document with the added fields (the original is
+        left untouched).
+
+        Args:
+            params: An `AddFormFieldsParams` instance.
+
+        Returns:
+            A `PDFGateDocument` instance.
+        """
+        request = self.request_builder.build_add_form_fields(params)
+        response = await self.async_client.try_make_request_async(request)
+        result = ResponseBuilder.build_document_response(response)
+
+        return result
+
+    def delete_document(self, params: DeleteDocumentParams) -> None:
+        """Permanently delete a stored document.
+
+        A document referenced by a draft or in-progress envelope cannot be
+        deleted until those envelopes are completed or expired.
+
+        Args:
+            params: A `DeleteDocumentParams` instance.
+        """
+        request = self.request_builder.build_delete_document(params)
+        self.sync_client.try_make_request(request)
+
+    async def delete_document_async(self, params: DeleteDocumentParams) -> None:
+        """Permanently delete a stored document.
+
+        A document referenced by a draft or in-progress envelope cannot be
+        deleted until those envelopes are completed or expired.
+
+        Args:
+            params: A `DeleteDocumentParams` instance.
+        """
+        request = self.request_builder.build_delete_document(params)
+        await self.async_client.try_make_request_async(request)
 
     def extract_pdf_form_data(self, params: ExtractPDFFormDataParams) -> Any:
         """Extract form field data from a fillable PDF and return it as JSON.
@@ -452,3 +532,85 @@ class PDFGate:
         result = ResponseBuilder.build_document_response(response)
 
         return result
+
+    def create_webhook(self, params: CreateWebhookParams) -> WebhookResponse:
+        """Register a webhook endpoint to receive PDFGate event notifications.
+
+        The response includes a ``secret`` (returned only once, at creation
+        time) used to verify webhook payloads via :func:`verify_signature`.
+
+        Args:
+            params: A `CreateWebhookParams` instance.
+
+        Returns:
+            The created webhook, including the signing ``secret``.
+        """
+        request = self.request_builder.build_create_webhook(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_webhook_response(response)
+
+    async def create_webhook_async(
+        self, params: CreateWebhookParams
+    ) -> WebhookResponse:
+        """Register a webhook endpoint to receive PDFGate event notifications.
+
+        The response includes a ``secret`` (returned only once, at creation
+        time) used to verify webhook payloads via :func:`verify_signature`.
+
+        Args:
+            params: A `CreateWebhookParams` instance.
+
+        Returns:
+            The created webhook, including the signing ``secret``.
+        """
+        request = self.request_builder.build_create_webhook(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_webhook_response(response)
+
+    def get_webhook(self, params: GetWebhookParams) -> WebhookResponse:
+        """Retrieve a registered webhook by ID.
+
+        The ``secret`` is not returned by this endpoint (only at creation time).
+
+        Args:
+            params: A `GetWebhookParams` instance.
+
+        Returns:
+            The webhook.
+        """
+        request = self.request_builder.build_get_webhook(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_webhook_response(response)
+
+    async def get_webhook_async(self, params: GetWebhookParams) -> WebhookResponse:
+        """Retrieve a registered webhook by ID.
+
+        The ``secret`` is not returned by this endpoint (only at creation time).
+
+        Args:
+            params: A `GetWebhookParams` instance.
+
+        Returns:
+            The webhook.
+        """
+        request = self.request_builder.build_get_webhook(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_webhook_response(response)
+
+    def delete_webhook(self, params: DeleteWebhookParams) -> None:
+        """Delete a registered webhook.
+
+        Args:
+            params: A `DeleteWebhookParams` instance.
+        """
+        request = self.request_builder.build_delete_webhook(params)
+        self.sync_client.try_make_request(request=request)
+
+    async def delete_webhook_async(self, params: DeleteWebhookParams) -> None:
+        """Delete a registered webhook.
+
+        Args:
+            params: A `DeleteWebhookParams` instance.
+        """
+        request = self.request_builder.build_delete_webhook(params)
+        await self.async_client.try_make_request_async(request=request)

@@ -17,14 +17,21 @@ from pdfgate.errors import (
 from pdfgate.http_client import PDFGateHTTPClientSync
 from pdfgate import verify_signature
 from pdfgate.params import (
+    AddFormFieldsParams,
     CreateEnvelopeParams,
+    CreateWebhookParams,
+    DeleteDocumentParams,
+    DeleteWebhookParams,
     EnvelopeDocument,
     EnvelopeRecipient,
+    FieldOverride,
     FileParam,
     FlattenPDFParams,
     GeneratePDFParams,
     GetDocumentParams,
     GetEnvelopeParams,
+    GetWebhookParams,
+    ManualFormField,
     SendEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
@@ -33,7 +40,7 @@ from pdfgate.params import (
 from pdfgate.pdfgate import PDFGate
 
 from pdfgate.request_builder import PDFGateRequest
-from pdfgate.responses import DocumentStatus
+from pdfgate.responses import DocumentFieldType, DocumentStatus, WebhookEventType
 from pdfgate.url_builder import URLBuilder
 
 
@@ -687,3 +694,173 @@ async def test_create_envelope_async(
     assert isinstance(response, dict)
     assert response.get("id") == envelope_id
     assert response.get("status") == "created"
+
+
+def test_flatten_pdf_forwards_field_names(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    flattened_document_response: FlattenedDocumentResponse,
+    document_id: str,
+    respx_mock: respx.MockRouter,
+) -> None:
+    url = url_builder.flatten_pdf_url()
+    route = respx_mock.post(url)
+    route.mock(return_value=httpx.Response(201, json=flattened_document_response))
+    params = FlattenPDFParams(document_id=document_id, field_names=["name", "email"])
+
+    client.flatten_pdf(params)
+
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("fieldNames") == ["name", "email"]
+    assert request_body.get("jsonResponse") is True
+
+
+def test_add_form_fields_sends_overrides_and_fields(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    document_id: str,
+    respx_mock: respx.MockRouter,
+) -> None:
+    url = url_builder.add_form_fields_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "completed",
+                "type": "document_fields_added",
+                "derivedFrom": document_id,
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = AddFormFieldsParams(
+        document_id=document_id,
+        field_overrides={"full_name": FieldOverride(role="signer", font_size=12)},
+        fields=[
+            ManualFormField(
+                name="signed_on",
+                type=DocumentFieldType.DATE,
+                page=1,
+                x=10,
+                y=20,
+                width=100,
+                height=24,
+                font_size=10,
+            )
+        ],
+    )
+
+    response = client.add_form_fields(params)
+
+    assert response.get("derived_from") == document_id
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("jsonResponse") is True
+    # Field-override keys must be preserved verbatim (not camelCased),
+    # while the override option keys are converted to camelCase.
+    assert "full_name" in request_body["fieldOverrides"]
+    assert request_body["fieldOverrides"]["full_name"]["fontSize"] == 12
+    assert request_body["fieldOverrides"]["full_name"]["role"] == "signer"
+    # Manual field inner keys are converted to camelCase.
+    assert request_body["fields"][0]["name"] == "signed_on"
+    assert request_body["fields"][0]["type"] == "date"
+    assert request_body["fields"][0]["fontSize"] == 10
+
+
+def test_delete_document_sends_delete_request(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    document_id: str,
+    respx_mock: respx.MockRouter,
+) -> None:
+    url = url_builder.get_document_url(document_id)
+    route = respx_mock.delete(url)
+    route.mock(return_value=httpx.Response(204))
+
+    client.delete_document(DeleteDocumentParams(document_id=document_id))
+
+    assert route.called
+    assert route.calls.last.request.method == "DELETE"
+
+
+def test_create_webhook_sends_config_and_parses_response(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    webhook_id = str(uuid.uuid4())
+    url = url_builder.webhook_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": webhook_id,
+                "url": "https://example.com/hook",
+                "eventTypes": ["envelope.completed"],
+                "status": "active",
+                "secret": "whsec_abc",
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateWebhookParams(
+        url="https://example.com/hook",
+        event_types=[WebhookEventType.ENVELOPE_COMPLETED],
+        description="my hook",
+    )
+
+    response = client.create_webhook(params)
+
+    assert response.get("id") == webhook_id
+    assert response.get("secret") == "whsec_abc"
+    assert response.get("event_types") == ["envelope.completed"]
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("url") == "https://example.com/hook"
+    assert request_body.get("eventTypes") == ["envelope.completed"]
+    assert request_body.get("description") == "my hook"
+
+
+def test_get_webhook_returns_json(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    webhook_id = str(uuid.uuid4())
+    url = url_builder.get_webhook_url(webhook_id)
+    route = respx_mock.get(url)
+    route.mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": webhook_id,
+                "url": "https://example.com/hook",
+                "eventTypes": ["envelope.sent"],
+                "status": "active",
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+
+    response = client.get_webhook(GetWebhookParams(webhook_id=webhook_id))
+
+    assert response.get("id") == webhook_id
+    assert response.get("status") == "active"
+    assert route.calls.last.request.method == "GET"
+
+
+def test_delete_webhook_sends_delete_request(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    webhook_id = str(uuid.uuid4())
+    url = url_builder.get_webhook_url(webhook_id)
+    route = respx_mock.delete(url)
+    route.mock(return_value=httpx.Response(204))
+
+    client.delete_webhook(DeleteWebhookParams(webhook_id=webhook_id))
+
+    assert route.called
+    assert route.calls.last.request.method == "DELETE"

@@ -6,9 +6,14 @@ import uuid
 
 import pytest
 from PIL import Image
+from pdfgate.errors import PDFGateError
 from pdfgate.params import (
+    AddFormFieldsParams,
     CompressPDFParams,
     CreateEnvelopeParams,
+    CreateWebhookParams,
+    DeleteDocumentParams,
+    DeleteWebhookParams,
     EnvelopeDocument,
     EnvelopeRecipient,
     ExtractPDFFormDataParams,
@@ -19,6 +24,8 @@ from pdfgate.params import (
     GetDocumentParams,
     GetEnvelopeParams,
     GetFileParams,
+    GetWebhookParams,
+    ManualFormField,
     PageSizeType,
     PdfPageMargin,
     ProtectPDFParams,
@@ -29,7 +36,12 @@ from pdfgate.params import (
     WatermarkType,
 )
 from pdfgate.pdfgate import PDFGate
-from pdfgate.responses import PDFGateDocument, PDFGateEnvelope
+from pdfgate.responses import (
+    DocumentFieldType,
+    PDFGateDocument,
+    PDFGateEnvelope,
+    WebhookEventType,
+)
 
 
 @pytest.fixture(scope="module")
@@ -428,3 +440,90 @@ def test_get_envelope(client: PDFGate, created_envelope: PDFGateEnvelope) -> Non
         "customer_id": "cus_123",
         "department": "sales",
     }
+
+
+def test_flatten_pdf_with_field_names(client: PDFGate, html_with_form: str) -> None:
+    document = client.generate_pdf(
+        GeneratePDFParams(html=html_with_form, enable_form_fields=True)
+    )
+    document_id = cast(str, document.get("id"))
+
+    flattened = client.flatten_pdf(
+        FlattenPDFParams(document_id=document_id, field_names=["first_name"])
+    )
+
+    assert isinstance(flattened, dict)
+    assert "id" in flattened
+    assert flattened["id"] != document_id
+    assert flattened.get("status") == "completed"
+
+
+def test_add_form_fields(client: PDFGate, document_id: str) -> None:
+    response = client.add_form_fields(
+        AddFormFieldsParams(
+            document_id=document_id,
+            fields=[
+                ManualFormField(
+                    name="full_name",
+                    type=DocumentFieldType.TEXT,
+                    page=1,
+                    x=50,
+                    y=500,
+                    width=200,
+                    height=24,
+                )
+            ],
+        )
+    )
+
+    assert isinstance(response, dict)
+    assert response.get("id") != document_id
+    assert response.get("status") == "completed"
+    assert response.get("type") == "document_fields_added"
+
+
+def test_delete_document(client: PDFGate) -> None:
+    document = client.generate_pdf(
+        GeneratePDFParams(html="<html><body><h1>Delete me</h1></body></html>")
+    )
+    document_id = cast(str, document.get("id"))
+
+    client.delete_document(DeleteDocumentParams(document_id=document_id))
+
+    with pytest.raises(PDFGateError):
+        client.get_document(GetDocumentParams(document_id=document_id))
+
+
+def test_webhook_lifecycle(client: PDFGate) -> None:
+    url = f"https://example.com/pdfgate-hook-{uuid.uuid4()}"
+
+    created = client.create_webhook(
+        CreateWebhookParams(
+            url=url,
+            event_types=[
+                WebhookEventType.ENVELOPE_COMPLETED,
+                WebhookEventType.ENVELOPE_SENT,
+            ],
+            description="Python SDK acceptance test",
+        )
+    )
+
+    assert isinstance(created, dict)
+    webhook_id = cast(str, created.get("id"))
+    assert webhook_id
+    assert created.get("url") == url
+    assert created.get("status") == "active"
+    # The signing secret is only returned at creation time.
+    assert isinstance(created.get("secret"), str) and created.get("secret")
+
+    try:
+        fetched = client.get_webhook(GetWebhookParams(webhook_id=webhook_id))
+        assert fetched.get("id") == webhook_id
+        assert fetched.get("url") == url
+        # The secret is not returned outside of creation.
+        assert fetched.get("secret") is None
+    finally:
+        client.delete_webhook(DeleteWebhookParams(webhook_id=webhook_id))
+
+    with pytest.raises(PDFGateError):
+        client.get_webhook(GetWebhookParams(webhook_id=webhook_id))
