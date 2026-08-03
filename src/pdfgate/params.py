@@ -333,6 +333,7 @@ class WatermarkPDFParams(PDFGateParams):
     text: Optional[str] = None
     watermark: Optional[FileParam] = None
     font: Optional[PdfStandardFont] = None
+    font_file: Optional[FileParam] = None
     font_size: Optional[int] = None
     font_color: Optional[str] = None
     opacity: Optional[float] = None

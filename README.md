@@ -247,6 +247,21 @@ watermark_pdf_params = WatermarkPDFParams(
 watermarked_pdf = client.watermark_pdf(watermark_pdf_params)
 ```
 
+For a text watermark you can upload a custom font file (TTF/OTF), which overrides the
+built-in `font`:
+
+```python
+watermark_pdf_params = WatermarkPDFParams(
+    document_id=document_id,
+    type=WatermarkType.TEXT,
+    text="Confidential",
+    font_file=FileParam(name="custom.ttf", data=ttf_file, type="font/ttf"),
+    rotate=30,
+    opacity=0.3,
+)
+watermarked_pdf = client.watermark_pdf(watermark_pdf_params)
+```
+
 ## Protect (encrypt) a PDF
 
 ```python
