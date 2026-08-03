@@ -228,12 +228,21 @@ class RequestBuilder:
         url = self.url_builder.watermark_pdf_url()
         params_dict = pdfgate_params_to_params_dict(params)
         params_dict["jsonResponse"] = True
+
+        files: dict[str, FormDataFileParam] = {}
         if params.type == WatermarkType.IMAGE and params.watermark is not None:
-            watermark_file_param = self._build_file_param(
-                params_dict.pop("watermark"), "watermark"
+            files.update(
+                self._build_file_param(params_dict.pop("watermark"), "watermark")
             )
+        # A custom font file (TTF/OTF) may be uploaded to override the built-in font.
+        if params.font_file is not None:
+            files.update(
+                self._build_file_param(params_dict.pop("fontFile"), "fontFile")
+            )
+
+        if files:
             request = self._multipart_post_request(
-                url=url, data=params_dict, files=watermark_file_param
+                url=url, data=params_dict, files=files
             )
         else:
             request = self._json_post_request(url=url, json=params_dict)

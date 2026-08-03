@@ -377,6 +377,45 @@ def test_watermark_pdf_with_image_sends_watermark_file(
     assert b'name="jsonResponse"' in request_body
 
 
+def test_watermark_pdf_with_text_sends_font_file(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    url = url_builder.watermark_pdf_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "completed",
+                "type": "watermarked",
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = WatermarkPDFParams(
+        document_id=str(uuid.uuid4()),
+        type=WatermarkType.TEXT,
+        text="Confidential",
+        font_file=FileParam(
+            name="custom.ttf", data=b"fake-font-bytes", type="font/ttf"
+        ),
+    )
+
+    response = client.watermark_pdf(params)
+
+    assert isinstance(response, dict)
+    request = route.calls.last.request
+    assert "multipart/form-data" in request.headers.get("content-type", "")
+    request_body = request.content
+    assert b'name="fontFile"' in request_body
+    assert b"custom.ttf" in request_body
+    assert b'name="text"' in request_body
+    assert b'name="jsonResponse"' in request_body
+
+
 def test_send_envelope_returns_json(
     client: PDFGate,
     url_builder: URLBuilder,
