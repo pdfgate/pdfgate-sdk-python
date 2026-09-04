@@ -21,6 +21,7 @@ from pdfgate.params import (
     CreateEnvelopeParams,
     CreateWebhookParams,
     DeleteDocumentParams,
+    DeleteEnvelopeParams,
     DeleteWebhookParams,
     EnvelopeDocument,
     EnvelopeRecipient,
@@ -33,6 +34,7 @@ from pdfgate.params import (
     GetWebhookParams,
     ManualFormField,
     SendEnvelopeParams,
+    VoidEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
     WatermarkType,
@@ -456,6 +458,73 @@ def test_send_envelope_returns_json(
         "department": "sales",
     }
     assert json.loads(route.calls.last.request.content.decode("utf-8")) == {}
+
+
+def test_void_envelope_sends_reason_and_returns_json(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    envelope_id = str(uuid.uuid4())
+    url = url_builder.void_envelope_url(envelope_id)
+    route = respx_mock.post(url)
+    response_json = {
+        "id": envelope_id,
+        "status": "voided",
+        "documents": [],
+        "createdAt": datetime.now().isoformat(),
+        "voidedAt": datetime.now().isoformat(),
+        "voidReason": "Contract terms changed",
+    }
+    route.mock(return_value=httpx.Response(200, json=response_json))
+
+    response = client.void_envelope(
+        VoidEnvelopeParams(envelope_id=envelope_id, reason="Contract terms changed")
+    )
+
+    assert isinstance(response, dict)
+    assert response.get("id") == envelope_id
+    assert response.get("status") == "voided"
+    assert response.get("void_reason") == "Contract terms changed"
+    assert response.get("voided_at") == response_json["voidedAt"]
+    assert json.loads(route.calls.last.request.content.decode("utf-8")) == {
+        "reason": "Contract terms changed"
+    }
+
+
+def test_void_envelope_sends_empty_body_without_reason(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    envelope_id = str(uuid.uuid4())
+    url = url_builder.void_envelope_url(envelope_id)
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            200,
+            json={"id": envelope_id, "status": "voided", "documents": []},
+        )
+    )
+
+    client.void_envelope(VoidEnvelopeParams(envelope_id=envelope_id))
+
+    assert json.loads(route.calls.last.request.content.decode("utf-8")) == {}
+
+
+def test_delete_envelope_sends_delete_request(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    envelope_id = str(uuid.uuid4())
+    url = url_builder.get_envelope_url(envelope_id)
+    route = respx_mock.delete(url)
+    route.mock(return_value=httpx.Response(200))
+
+    client.delete_envelope(DeleteEnvelopeParams(envelope_id=envelope_id))
+
+    assert route.called
 
 
 def test_get_envelope_returns_json(

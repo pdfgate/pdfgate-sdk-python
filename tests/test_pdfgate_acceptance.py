@@ -30,6 +30,8 @@ from pdfgate.params import (
     PdfPageMargin,
     ProtectPDFParams,
     SendEnvelopeParams,
+    VoidEnvelopeParams,
+    DeleteEnvelopeParams,
     UploadFileParams,
     Viewport,
     WatermarkPDFParams,
@@ -440,6 +442,46 @@ def test_get_envelope(client: PDFGate, created_envelope: PDFGateEnvelope) -> Non
         "customer_id": "cus_123",
         "department": "sales",
     }
+
+
+def test_void_and_delete_envelope(client: PDFGate, envelope_document_id: str) -> None:
+    # Own envelope — voiding the shared created_envelope fixture would break
+    # the send/get tests that reuse it.
+    envelope = client.create_envelope(
+        CreateEnvelopeParams(
+            requester_name="Jane Doe",
+            documents=[
+                EnvelopeDocument(
+                    source_document_id=envelope_document_id,
+                    name="Void Delete Agreement",
+                    recipients=[
+                        EnvelopeRecipient(
+                            email="anna@example.com",
+                            name="Anna Smith",
+                        )
+                    ],
+                )
+            ],
+            expires_in_days=10,
+        )
+    )
+    envelope_id = cast(str, envelope.get("id"))
+    assert "expires_at" in envelope
+
+    voided = client.void_envelope(
+        VoidEnvelopeParams(envelope_id=envelope_id, reason="Acceptance test void")
+    )
+    assert voided.get("status") == "voided"
+    assert "voided_at" in voided
+    assert voided.get("void_reason") == "Acceptance test void"
+
+    with pytest.raises(PDFGateError):
+        client.void_envelope(VoidEnvelopeParams(envelope_id=envelope_id))
+
+    client.delete_envelope(DeleteEnvelopeParams(envelope_id=envelope_id))
+
+    with pytest.raises(PDFGateError):
+        client.get_envelope(GetEnvelopeParams(envelope_id=envelope_id))
 
 
 def test_flatten_pdf_with_field_names(client: PDFGate, html_with_form: str) -> None:

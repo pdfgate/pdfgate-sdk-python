@@ -25,6 +25,8 @@ from pdfgate.params import (
     PDFGateParams,
     ProtectPDFParams,
     SendEnvelopeParams,
+    VoidEnvelopeParams,
+    DeleteEnvelopeParams,
     UploadFileParams,
     WatermarkType,
     WatermarkPDFParams,
@@ -269,6 +271,19 @@ class RequestBuilder:
         """Build a request to send a signing envelope to its recipients."""
         url = self.url_builder.send_envelope_url(params.envelope_id)
         request = self._json_post_request(url=url, json={})
+        return PDFGateRequest(request=request)
+
+    def build_void_envelope(self, params: VoidEnvelopeParams) -> PDFGateRequest:
+        """Build a request to void (cancel) a signing envelope."""
+        url = self.url_builder.void_envelope_url(params.envelope_id)
+        body = {"reason": params.reason} if params.reason else {}
+        request = self._json_post_request(url=url, json=body)
+        return PDFGateRequest(request=request)
+
+    def build_delete_envelope(self, params: DeleteEnvelopeParams) -> PDFGateRequest:
+        """Build a request to permanently delete an envelope by ID."""
+        url = self.url_builder.get_envelope_url(params.envelope_id)
+        request = self._delete_request(url)
         return PDFGateRequest(request=request)
 
     def build_create_webhook(self, params: CreateWebhookParams) -> PDFGateRequest:

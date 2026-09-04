@@ -21,6 +21,8 @@ from .params import (
     GetWebhookParams,
     ProtectPDFParams,
     SendEnvelopeParams,
+    VoidEnvelopeParams,
+    DeleteEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
 )
@@ -513,6 +515,74 @@ class PDFGate:
         request = self.request_builder.build_send_envelope(params)
         response = await self.async_client.try_make_request_async(request=request)
         return ResponseBuilder.build_envelope_response(response)
+
+    def void_envelope(self, params: VoidEnvelopeParams) -> PDFGateEnvelope:
+        """Void (cancel) an envelope in ``created`` or ``in_progress`` status.
+
+        Recipients who have not signed yet are notified by email and their
+        signing links stop working. Documents already signed by all recipients
+        are not affected. The optional reason is visible to recipients. This
+        action cannot be undone.
+
+        Args:
+            params: Envelope void parameters including the envelope ID and an
+                optional reason.
+
+        Returns:
+            The updated envelope in ``voided`` status.
+        """
+        request = self.request_builder.build_void_envelope(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    async def void_envelope_async(self, params: VoidEnvelopeParams) -> PDFGateEnvelope:
+        """Void (cancel) an envelope in ``created`` or ``in_progress`` status.
+
+        Recipients who have not signed yet are notified by email and their
+        signing links stop working. Documents already signed by all recipients
+        are not affected. The optional reason is visible to recipients. This
+        action cannot be undone.
+
+        Args:
+            params: Envelope void parameters including the envelope ID and an
+                optional reason.
+
+        Returns:
+            The updated envelope in ``voided`` status.
+        """
+        request = self.request_builder.build_void_envelope(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_envelope_response(response)
+
+    def delete_envelope(self, params: DeleteEnvelopeParams) -> None:
+        """Permanently delete an envelope and the files it produced.
+
+        The signed documents and audit logs are removed from storage, recipient
+        data is anonymized, and recipients lose access. Source documents are not
+        deleted. Only envelopes in ``draft``, ``completed``, ``expired``, or
+        ``voided`` status can be deleted — void an active envelope first. This
+        action cannot be undone.
+
+        Args:
+            params: Envelope delete parameters including the envelope ID.
+        """
+        request = self.request_builder.build_delete_envelope(params)
+        self.sync_client.try_make_request(request=request)
+
+    async def delete_envelope_async(self, params: DeleteEnvelopeParams) -> None:
+        """Permanently delete an envelope and the files it produced.
+
+        The signed documents and audit logs are removed from storage, recipient
+        data is anonymized, and recipients lose access. Source documents are not
+        deleted. Only envelopes in ``draft``, ``completed``, ``expired``, or
+        ``voided`` status can be deleted — void an active envelope first. This
+        action cannot be undone.
+
+        Args:
+            params: Envelope delete parameters including the envelope ID.
+        """
+        request = self.request_builder.build_delete_envelope(params)
+        await self.async_client.try_make_request_async(request=request)
 
     async def upload_file_async(self, params: UploadFileParams) -> PDFGateDocument:
         """Upload a raw PDF file.
