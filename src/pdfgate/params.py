@@ -310,16 +310,42 @@ class EnvelopeDocument(PDFGateParams):
 
 @dataclass
 class CreateEnvelopeParams(PDFGateParams):
-    """Parameters for creating a signing envelope."""
+    """Parameters for creating a signing envelope.
+
+    ``expires_in_days`` controls how many days until the envelope and its
+    signing links expire, counted from creation (min 1, max 90). Defaults to
+    the account's envelope expiration setting.
+    """
 
     documents: list["EnvelopeDocument"]
     requester_name: str
     metadata: Optional[dict] = None
+    expires_in_days: Optional[int] = None
 
 
 @dataclass
 class SendEnvelopeParams(PDFGateParams):
     """Parameters for sending a signing envelope to its recipients."""
+
+    envelope_id: str
+
+
+@dataclass
+class VoidEnvelopeParams(PDFGateParams):
+    """Parameters for voiding (cancelling) a signing envelope.
+
+    The optional ``reason`` (max 500 characters) is visible to recipients: it
+    is included in the cancellation email sent to recipients who had not
+    signed yet.
+    """
+
+    envelope_id: str
+    reason: Optional[str] = None
+
+
+@dataclass
+class DeleteEnvelopeParams(PDFGateParams):
+    """Parameters for permanently deleting an envelope."""
 
     envelope_id: str
 

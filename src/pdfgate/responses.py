@@ -33,11 +33,13 @@ class EnvelopeStatus(Enum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     EXPIRED = "expired"
+    VOIDED = "voided"
 
 
 class EnvelopeDocumentStatus(Enum):
     PENDING = "pending"
     EXPIRED = "expired"
+    VOIDED = "voided"
     SENT_FOR_SIGNING = "sent_for_signing"
     SIGNING_IN_PROGRESS = "signing_in_progress"
     SIGNING_FAILED = "signing_failed"
@@ -47,6 +49,7 @@ class EnvelopeDocumentStatus(Enum):
 class DocumentRecipientStatus(Enum):
     PENDING = "pending"
     EXPIRED = "expired"
+    VOIDED = "voided"
     SIGNED = "signed"
 
 
@@ -61,6 +64,9 @@ class WebhookEventType(Enum):
     ENVELOPE_SENT = "envelope.sent"
     ENVELOPE_COMPLETED = "envelope.completed"
     ENVELOPE_EXPIRED = "envelope.expired"
+    ENVELOPE_VOIDED = "envelope.voided"
+    ENVELOPE_DELETED = "envelope.deleted"
+    ENVELOPE_RECIPIENT_SIGNED = "envelope.recipient.signed"
     ENVELOPE_DOCUMENT_COMPLETED = "envelope.document.completed"
 
 
@@ -120,8 +126,11 @@ class PDFGateEnvelope(TypedDict, total=False):
     status: EnvelopeStatus
     documents: list[EnvelopeDocumentResponse]
     created_at: str
+    expires_at: str
     completed_at: str
     expired_at: str
+    voided_at: str
+    void_reason: str
     metadata: Optional[dict[str, Any]]
 
 

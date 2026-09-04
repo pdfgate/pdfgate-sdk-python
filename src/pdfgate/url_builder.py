@@ -116,6 +116,18 @@ class URLBuilder:
         """
         return f"{self.domain}/envelope/{envelope_id}"
 
+    def void_envelope_url(self, envelope_id: str) -> str:
+        """Build the URL for voiding an envelope.
+
+        Args:
+            envelope_id:
+                ID of the envelope to void.
+
+        Returns:
+            Full URL to void an envelope.
+        """
+        return f"{self.domain}/envelope/{envelope_id}/void"
+
     def send_envelope_url(self, envelope_id: str) -> str:
         """Build the URL for sending an envelope.
 
