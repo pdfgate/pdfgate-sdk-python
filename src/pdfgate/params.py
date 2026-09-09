@@ -290,13 +290,20 @@ class WatermarkType(Enum):
 
 @dataclass
 class EnvelopeRecipient(PDFGateParams):
-    """A recipient on a document within an envelope."""
+    """A recipient on a document within an envelope.
 
-    email: str
-    name: str
+    Provide either ``email`` and ``name`` or the ``recipient_id`` of a stored
+    recipient, never both. Recipients marked ``embedded`` sign inside your own
+    application through an embed link and receive no emails from PDFGate.
+    """
+
+    email: Optional[str] = None
+    name: Optional[str] = None
+    recipient_id: Optional[str] = None
     role: Optional[str] = None
     reminder_interval_days: Optional[int] = None
     reminder_attempts: Optional[int] = None
+    embedded: Optional[bool] = None
 
 
 @dataclass
@@ -348,6 +355,60 @@ class DeleteEnvelopeParams(PDFGateParams):
     """Parameters for permanently deleting an envelope."""
 
     envelope_id: str
+
+
+@dataclass
+class CreateEmbedLinkParams(PDFGateParams):
+    """Parameters for creating an embedded signing link.
+
+    ``document_id`` is the envelope document ID (``source_document_id``),
+    ``recipient_id`` is the recipient ID of the embedded recipient, and
+    ``return_url`` is the URL the signing session redirects to when it ends.
+    """
+
+    envelope_id: str
+    document_id: str
+    recipient_id: str
+    return_url: str
+
+
+@dataclass
+class CreateRecipientParams(PDFGateParams):
+    """Parameters for storing a recipient in your account.
+
+    The ``email`` is stored lowercased and cannot be changed later. Emails are
+    not unique; every call creates a new recipient.
+    """
+
+    email: str
+    name: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+@dataclass
+class ListRecipientsParams(PDFGateParams):
+    """Parameters for listing stored recipients by email (case-insensitive)."""
+
+    email: str
+
+
+@dataclass
+class GetRecipientParams(PDFGateParams):
+    """Parameters for fetching a stored recipient by ID."""
+
+    recipient_id: str
+
+
+@dataclass
+class UpdateRecipientParams(PDFGateParams):
+    """Parameters for updating a stored recipient's name or metadata.
+
+    The email cannot be changed.
+    """
+
+    recipient_id: str
+    name: Optional[str] = None
+    metadata: Optional[dict] = None
 
 
 @dataclass
