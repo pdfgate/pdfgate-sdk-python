@@ -8,7 +8,9 @@ from .errors import ParamsValidationError
 from .params import (
     AddFormFieldsParams,
     CompressPDFParams,
+    CreateEmbedLinkParams,
     CreateEnvelopeParams,
+    CreateRecipientParams,
     CreateWebhookParams,
     DeleteDocumentParams,
     DeleteWebhookParams,
@@ -18,15 +20,25 @@ from .params import (
     GetDocumentParams,
     GetEnvelopeParams,
     GetFileParams,
+    GetRecipientParams,
     GetWebhookParams,
+    ListRecipientsParams,
     ProtectPDFParams,
     SendEnvelopeParams,
+    UpdateRecipientParams,
     VoidEnvelopeParams,
     DeleteEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
 )
-from .responses import PDFGateDocument, PDFGateEnvelope, WebhookResponse
+from .responses import (
+    EmbedLinkResponse,
+    PDFGateDocument,
+    PDFGateEnvelope,
+    PDFGateRecipient,
+    RecipientListResponse,
+    WebhookResponse,
+)
 
 
 class PDFGate:
@@ -437,6 +449,11 @@ class PDFGate:
     def create_envelope(self, params: CreateEnvelopeParams) -> PDFGateEnvelope:
         """Create a signing envelope from one or more source documents.
 
+        Each recipient is given either as ``email`` and ``name`` or as the
+        ``recipient_id`` of a stored recipient. Recipients marked ``embedded``
+        receive no email and get their signing links via
+        :meth:`create_embed_link` after sending.
+
         Args:
             params: Envelope creation parameters including documents, recipients,
                 requester name, and optional metadata.
@@ -466,6 +483,11 @@ class PDFGate:
     ) -> PDFGateEnvelope:
         """Create a signing envelope from one or more source documents.
 
+        Each recipient is given either as ``email`` and ``name`` or as the
+        ``recipient_id`` of a stored recipient. Recipients marked ``embedded``
+        receive no email and get their signing links via
+        :meth:`create_embed_link` after sending.
+
         Args:
             params: Envelope creation parameters including documents, recipients,
                 requester name, and optional metadata.
@@ -493,6 +515,9 @@ class PDFGate:
     def send_envelope(self, params: SendEnvelopeParams) -> PDFGateEnvelope:
         """Send a signing envelope to all configured recipients.
 
+        Embedded recipients receive no email; create their signing links with
+        :meth:`create_embed_link` after sending.
+
         Args:
             params: Envelope send parameters including the envelope ID.
 
@@ -505,6 +530,9 @@ class PDFGate:
 
     async def send_envelope_async(self, params: SendEnvelopeParams) -> PDFGateEnvelope:
         """Send a signing envelope to all configured recipients.
+
+        Embedded recipients receive no email; create their signing links with
+        :meth:`create_embed_link` after sending.
 
         Args:
             params: Envelope send parameters including the envelope ID.
@@ -583,6 +611,184 @@ class PDFGate:
         """
         request = self.request_builder.build_delete_envelope(params)
         await self.async_client.try_make_request_async(request=request)
+
+    def create_embed_link(self, params: CreateEmbedLinkParams) -> EmbedLinkResponse:
+        """Create a short-lived signing link for an embedded recipient.
+
+        Render the returned URL in an iframe inside your application. The
+        envelope must be in ``in_progress`` status and the link expires after
+        10 minutes, so create it when the signer is ready (one link per signing
+        session). When the session ends the iframe redirects to ``return_url``
+        with ``event`` (``signing_complete``, ``voided``, ``expired`` or
+        ``not_found``), ``envelopeId``, ``documentId`` and ``recipientId``
+        appended as query parameters; existing ``return_url`` query parameters
+        are preserved.
+
+        Args:
+            params: Embed link parameters including the envelope ID, document
+                ID, recipient ID, and return URL.
+
+        Returns:
+            The embed link with the signing ``url`` and its ``expires_at``.
+        """
+        request = self.request_builder.build_create_embed_link(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_embed_link_response(response)
+
+    async def create_embed_link_async(
+        self, params: CreateEmbedLinkParams
+    ) -> EmbedLinkResponse:
+        """Create a short-lived signing link for an embedded recipient.
+
+        Render the returned URL in an iframe inside your application. The
+        envelope must be in ``in_progress`` status and the link expires after
+        10 minutes, so create it when the signer is ready (one link per signing
+        session). When the session ends the iframe redirects to ``return_url``
+        with ``event`` (``signing_complete``, ``voided``, ``expired`` or
+        ``not_found``), ``envelopeId``, ``documentId`` and ``recipientId``
+        appended as query parameters; existing ``return_url`` query parameters
+        are preserved.
+
+        Args:
+            params: Embed link parameters including the envelope ID, document
+                ID, recipient ID, and return URL.
+
+        Returns:
+            The embed link with the signing ``url`` and its ``expires_at``.
+        """
+        request = self.request_builder.build_create_embed_link(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_embed_link_response(response)
+
+    def create_recipient(self, params: CreateRecipientParams) -> PDFGateRecipient:
+        """Store a recipient in your account so envelopes can reference them.
+
+        Emails are not unique; every call creates a new recipient. List
+        existing recipients first when reuse is intended.
+
+        Args:
+            params: Recipient creation parameters including the email and an
+                optional name and metadata.
+
+        Returns:
+            The created recipient.
+        """
+        request = self.request_builder.build_create_recipient(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    async def create_recipient_async(
+        self, params: CreateRecipientParams
+    ) -> PDFGateRecipient:
+        """Store a recipient in your account so envelopes can reference them.
+
+        Emails are not unique; every call creates a new recipient. List
+        existing recipients first when reuse is intended.
+
+        Args:
+            params: Recipient creation parameters including the email and an
+                optional name and metadata.
+
+        Returns:
+            The created recipient.
+        """
+        request = self.request_builder.build_create_recipient(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    def list_recipients(self, params: ListRecipientsParams) -> RecipientListResponse:
+        """List stored recipients with the given email, oldest first.
+
+        The email lookup is case-insensitive.
+
+        Args:
+            params: Recipient list parameters including the email to look up.
+
+        Returns:
+            An object with the matching ``recipients``.
+        """
+        request = self.request_builder.build_list_recipients(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_recipient_list_response(response)
+
+    async def list_recipients_async(
+        self, params: ListRecipientsParams
+    ) -> RecipientListResponse:
+        """List stored recipients with the given email, oldest first.
+
+        The email lookup is case-insensitive.
+
+        Args:
+            params: Recipient list parameters including the email to look up.
+
+        Returns:
+            An object with the matching ``recipients``.
+        """
+        request = self.request_builder.build_list_recipients(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_recipient_list_response(response)
+
+    def get_recipient(self, params: GetRecipientParams) -> PDFGateRecipient:
+        """Retrieve a stored recipient by ID.
+
+        Args:
+            params: Recipient lookup parameters including the recipient ID.
+
+        Returns:
+            The recipient.
+        """
+        request = self.request_builder.build_get_recipient(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    async def get_recipient_async(self, params: GetRecipientParams) -> PDFGateRecipient:
+        """Retrieve a stored recipient by ID.
+
+        Args:
+            params: Recipient lookup parameters including the recipient ID.
+
+        Returns:
+            The recipient.
+        """
+        request = self.request_builder.build_get_recipient(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    def update_recipient(self, params: UpdateRecipientParams) -> PDFGateRecipient:
+        """Update a stored recipient's name or metadata.
+
+        The email cannot be changed. Existing envelopes are not affected; they
+        keep the recipient name they were created with.
+
+        Args:
+            params: Recipient update parameters including the recipient ID and
+                the fields to update.
+
+        Returns:
+            The updated recipient.
+        """
+        request = self.request_builder.build_update_recipient(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    async def update_recipient_async(
+        self, params: UpdateRecipientParams
+    ) -> PDFGateRecipient:
+        """Update a stored recipient's name or metadata.
+
+        The email cannot be changed. Existing envelopes are not affected; they
+        keep the recipient name they were created with.
+
+        Args:
+            params: Recipient update parameters including the recipient ID and
+                the fields to update.
+
+        Returns:
+            The updated recipient.
+        """
+        request = self.request_builder.build_update_recipient(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_recipient_response(response)
 
     async def upload_file_async(self, params: UploadFileParams) -> PDFGateDocument:
         """Upload a raw PDF file.

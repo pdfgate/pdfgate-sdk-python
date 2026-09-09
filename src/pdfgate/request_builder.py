@@ -11,7 +11,9 @@ from pdfgate.errors import PDFGateError
 from pdfgate.params import (
     AddFormFieldsParams,
     CompressPDFParams,
+    CreateEmbedLinkParams,
     CreateEnvelopeParams,
+    CreateRecipientParams,
     CreateWebhookParams,
     DeleteDocumentParams,
     DeleteWebhookParams,
@@ -21,10 +23,13 @@ from pdfgate.params import (
     GeneratePDFParams,
     GetDocumentParams,
     GetEnvelopeParams,
+    GetRecipientParams,
     GetWebhookParams,
+    ListRecipientsParams,
     PDFGateParams,
     ProtectPDFParams,
     SendEnvelopeParams,
+    UpdateRecipientParams,
     VoidEnvelopeParams,
     DeleteEnvelopeParams,
     UploadFileParams,
@@ -101,6 +106,10 @@ class RequestBuilder:
         return httpx.Request(
             "POST", url=url, headers=self.get_headers(), data=data, files=files
         )
+
+    def _json_patch_request(self, url: str, json: dict[str, Any]) -> httpx.Request:
+        """Create a JSON PATCH request with standard headers."""
+        return httpx.Request("PATCH", url=url, headers=self.get_headers(), json=json)
 
     def _delete_request(self, url: str) -> httpx.Request:
         """Create a DELETE request with standard headers."""
@@ -284,6 +293,44 @@ class RequestBuilder:
         """Build a request to permanently delete an envelope by ID."""
         url = self.url_builder.get_envelope_url(params.envelope_id)
         request = self._delete_request(url)
+        return PDFGateRequest(request=request)
+
+    def build_create_embed_link(self, params: CreateEmbedLinkParams) -> PDFGateRequest:
+        """Build a request to create an embedded signing link."""
+        url = self.url_builder.embed_link_url(params.envelope_id)
+        body = {
+            "documentId": params.document_id,
+            "recipientId": params.recipient_id,
+            "returnUrl": params.return_url,
+        }
+        request = self._json_post_request(url=url, json=body)
+        return PDFGateRequest(request=request)
+
+    def build_create_recipient(self, params: CreateRecipientParams) -> PDFGateRequest:
+        """Build a request to store a recipient."""
+        url = self.url_builder.recipient_url()
+        body = pdfgate_params_to_params_dict(params)
+        request = self._json_post_request(url=url, json=body)
+        return PDFGateRequest(request=request)
+
+    def build_list_recipients(self, params: ListRecipientsParams) -> PDFGateRequest:
+        """Build a request to list stored recipients by email."""
+        url = self.url_builder.list_recipients_url()
+        request = self._get_request(url, {"email": params.email})
+        return PDFGateRequest(request=request)
+
+    def build_get_recipient(self, params: GetRecipientParams) -> PDFGateRequest:
+        """Build a request to fetch a stored recipient by ID."""
+        url = self.url_builder.get_recipient_url(params.recipient_id)
+        request = self._get_request(url=url)
+        return PDFGateRequest(request=request)
+
+    def build_update_recipient(self, params: UpdateRecipientParams) -> PDFGateRequest:
+        """Build a request to update a stored recipient's name or metadata."""
+        url = self.url_builder.get_recipient_url(params.recipient_id)
+        body = pdfgate_params_to_params_dict(params)
+        body.pop("recipientId", None)
+        request = self._json_patch_request(url=url, json=body)
         return PDFGateRequest(request=request)
 
     def build_create_webhook(self, params: CreateWebhookParams) -> PDFGateRequest:

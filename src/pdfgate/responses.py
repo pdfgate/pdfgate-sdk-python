@@ -99,7 +99,9 @@ class EnvelopeFieldResponse(TypedDict, total=False):
 class EnvelopeRecipientResponse(TypedDict, total=False):
     """A recipient within an envelope document response."""
 
+    recipient_id: str
     email: str
+    embedded: bool
     status: DocumentRecipientStatus
     signed_at: str
     viewed_at: str
@@ -132,6 +134,31 @@ class PDFGateEnvelope(TypedDict, total=False):
     voided_at: str
     void_reason: str
     metadata: Optional[dict[str, Any]]
+
+
+class PDFGateRecipient(TypedDict, total=False):
+    """Typed dictionary representing a stored PDFGate recipient."""
+
+    id: str
+    email: str
+    name: str
+    metadata: Optional[dict[str, Any]]
+    created_at: str
+    updated_at: str
+    last_used_at: str
+
+
+class RecipientListResponse(TypedDict, total=False):
+    """Typed dictionary representing a list of stored recipients."""
+
+    recipients: list[PDFGateRecipient]
+
+
+class EmbedLinkResponse(TypedDict, total=False):
+    """Typed dictionary representing an embedded signing link."""
+
+    url: str
+    expires_at: str
 
 
 class PDFGateDocument(TypedDict, total=False):

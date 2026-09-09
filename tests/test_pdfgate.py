@@ -18,7 +18,9 @@ from pdfgate.http_client import PDFGateHTTPClientSync
 from pdfgate import verify_signature
 from pdfgate.params import (
     AddFormFieldsParams,
+    CreateEmbedLinkParams,
     CreateEnvelopeParams,
+    CreateRecipientParams,
     CreateWebhookParams,
     DeleteDocumentParams,
     DeleteEnvelopeParams,
@@ -31,9 +33,12 @@ from pdfgate.params import (
     GeneratePDFParams,
     GetDocumentParams,
     GetEnvelopeParams,
+    GetRecipientParams,
     GetWebhookParams,
+    ListRecipientsParams,
     ManualFormField,
     SendEnvelopeParams,
+    UpdateRecipientParams,
     VoidEnvelopeParams,
     UploadFileParams,
     WatermarkPDFParams,
@@ -525,6 +530,222 @@ def test_delete_envelope_sends_delete_request(
     client.delete_envelope(DeleteEnvelopeParams(envelope_id=envelope_id))
 
     assert route.called
+
+
+def test_create_embed_link_sends_correct_json(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    envelope_id = str(uuid.uuid4())
+    document_id = str(uuid.uuid4())
+    recipient_id = str(uuid.uuid4())
+    url = url_builder.embed_link_url(envelope_id)
+    route = respx_mock.post(url)
+    response_json = {
+        "url": "https://sign.pdfgate.com/embed/abc123",
+        "expiresAt": datetime.now().isoformat(),
+    }
+    route.mock(return_value=httpx.Response(201, json=response_json))
+
+    response = client.create_embed_link(
+        CreateEmbedLinkParams(
+            envelope_id=envelope_id,
+            document_id=document_id,
+            recipient_id=recipient_id,
+            return_url="https://example.com/signing/done",
+        )
+    )
+
+    assert isinstance(response, dict)
+    assert response.get("url") == response_json["url"]
+    assert response.get("expires_at") == response_json["expiresAt"]
+    assert json.loads(route.calls.last.request.content.decode("utf-8")) == {
+        "documentId": document_id,
+        "recipientId": recipient_id,
+        "returnUrl": "https://example.com/signing/done",
+    }
+
+
+def test_create_recipient_sends_correct_json(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    recipient_id = str(uuid.uuid4())
+    url = url_builder.recipient_url()
+    route = respx_mock.post(url)
+    response_json = {
+        "id": recipient_id,
+        "email": "anna@example.com",
+        "name": "Anna Smith",
+        "metadata": {"customerId": "cus_123"},
+        "createdAt": datetime.now().isoformat(),
+    }
+    route.mock(return_value=httpx.Response(201, json=response_json))
+
+    response = client.create_recipient(
+        CreateRecipientParams(
+            email="Anna@Example.com",
+            name="Anna Smith",
+            metadata={"customerId": "cus_123"},
+        )
+    )
+
+    assert isinstance(response, dict)
+    assert response.get("id") == recipient_id
+    assert response.get("email") == "anna@example.com"
+    assert response.get("created_at") == response_json["createdAt"]
+    assert json.loads(route.calls.last.request.content.decode("utf-8")) == {
+        "email": "Anna@Example.com",
+        "name": "Anna Smith",
+        "metadata": {"customerId": "cus_123"},
+    }
+
+
+def test_list_recipients_sends_email_query_param(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    url = url_builder.list_recipients_url()
+    route = respx_mock.get(url)
+    response_json = {
+        "recipients": [
+            {
+                "id": str(uuid.uuid4()),
+                "email": "anna@example.com",
+                "name": "Anna Smith",
+                "createdAt": datetime.now().isoformat(),
+                "lastUsedAt": datetime.now().isoformat(),
+            }
+        ]
+    }
+    route.mock(return_value=httpx.Response(200, json=response_json))
+
+    response = client.list_recipients(ListRecipientsParams(email="anna@example.com"))
+
+    assert isinstance(response, dict)
+    recipients = response.get("recipients", [])
+    assert len(recipients) == 1
+    assert recipients[0].get("email") == "anna@example.com"
+    assert recipients[0].get("last_used_at") is not None
+    request = route.calls.last.request
+    assert request.url.params.get("email") == "anna@example.com"
+
+
+def test_get_recipient_returns_json(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    recipient_id = str(uuid.uuid4())
+    url = url_builder.get_recipient_url(recipient_id)
+    route = respx_mock.get(url)
+    response_json = {
+        "id": recipient_id,
+        "email": "anna@example.com",
+        "name": "Anna Smith",
+        "createdAt": datetime.now().isoformat(),
+    }
+    route.mock(return_value=httpx.Response(200, json=response_json))
+
+    response = client.get_recipient(GetRecipientParams(recipient_id=recipient_id))
+
+    assert isinstance(response, dict)
+    assert response.get("id") == recipient_id
+    assert response.get("email") == "anna@example.com"
+
+
+def test_update_recipient_sends_patch_without_recipient_id_in_body(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    recipient_id = str(uuid.uuid4())
+    url = url_builder.get_recipient_url(recipient_id)
+    route = respx_mock.patch(url)
+    response_json = {
+        "id": recipient_id,
+        "email": "anna@example.com",
+        "name": "Anna Smith-Jones",
+        "createdAt": datetime.now().isoformat(),
+        "updatedAt": datetime.now().isoformat(),
+    }
+    route.mock(return_value=httpx.Response(200, json=response_json))
+
+    response = client.update_recipient(
+        UpdateRecipientParams(recipient_id=recipient_id, name="Anna Smith-Jones")
+    )
+
+    assert isinstance(response, dict)
+    assert response.get("id") == recipient_id
+    assert response.get("name") == "Anna Smith-Jones"
+    assert response.get("updated_at") == response_json["updatedAt"]
+    assert json.loads(route.calls.last.request.content.decode("utf-8")) == {
+        "name": "Anna Smith-Jones"
+    }
+
+
+def test_create_envelope_sends_stored_and_embedded_recipients(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    source_doc_id = str(uuid.uuid4())
+    recipient_id = str(uuid.uuid4())
+    url = url_builder.envelope_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "created",
+                "documents": [
+                    {
+                        "sourceDocumentId": source_doc_id,
+                        "recipients": [
+                            {
+                                "recipientId": recipient_id,
+                                "email": "anna@example.com",
+                                "status": "pending",
+                                "fields": [],
+                            }
+                        ],
+                        "status": "pending",
+                    }
+                ],
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateEnvelopeParams(
+        requester_name="John Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_doc_id,
+                name="Employment Agreement",
+                recipients=[
+                    EnvelopeRecipient(
+                        recipient_id=recipient_id,
+                        role="signer",
+                        embedded=True,
+                    )
+                ],
+            )
+        ],
+    )
+
+    response = client.create_envelope(params)
+
+    recipients = response.get("documents", [])[0].get("recipients", [])
+    assert recipients[0].get("recipient_id") == recipient_id
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    sent_recipients = request_body["documents"][0]["recipients"]
+    assert sent_recipients == [
+        {"recipientId": recipient_id, "role": "signer", "embedded": True}
+    ]
 
 
 def test_get_envelope_returns_json(

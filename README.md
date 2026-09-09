@@ -74,6 +74,15 @@ The SDK returns a `PDFGateDocument` for all processing endpoints:
 To get raw PDF bytes, call `get_file` with a document ID.
 `delete_document` returns `None`.
 
+Envelope methods (`create_envelope`, `get_envelope`, `send_envelope`,
+`void_envelope`) return a `PDFGateEnvelope`; `delete_envelope` returns `None`.
+`create_embed_link` returns an `EmbedLinkResponse` with the signing `url` and
+its `expires_at`.
+
+Recipient methods (`create_recipient`, `get_recipient`, `update_recipient`)
+return a `PDFGateRecipient`; `list_recipients` returns a
+`RecipientListResponse` with a `recipients` list.
+
 Webhook management methods (`create_webhook`, `get_webhook`) return a
 `WebhookResponse`; `delete_webhook` returns `None`.
 
@@ -290,6 +299,117 @@ document_id = document_response["id"]
 
 extract_form_params = ExtractPDFFormDataParams(document_id=document_id)
 response = client.extract_pdf_form_data(extract_form_params)
+```
+
+## Embedded signing
+
+Recipients marked `embedded` sign inside your own application instead of the
+hosted signing UI, and receive no emails from PDFGate. After sending the
+envelope, create a short-lived signing link and render it in an iframe.
+
+```python
+from pdfgate import (
+    CreateEmbedLinkParams,
+    CreateEnvelopeParams,
+    EnvelopeDocument,
+    EnvelopeRecipient,
+    SendEnvelopeParams,
+)
+
+envelope = client.create_envelope(
+    CreateEnvelopeParams(
+        requester_name="John Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=document_id,
+                name="Employment Agreement",
+                recipients=[
+                    EnvelopeRecipient(
+                        email="anna@example.com",
+                        name="Anna Smith",
+                        role="signer",
+                        embedded=True,
+                    )
+                ],
+            )
+        ],
+    )
+)
+
+client.send_envelope(SendEnvelopeParams(envelope_id=envelope["id"]))
+
+link = client.create_embed_link(
+    CreateEmbedLinkParams(
+        envelope_id=envelope["id"],
+        document_id=document_id,
+        recipient_id=envelope["documents"][0]["recipients"][0]["recipient_id"],
+        return_url="https://yourapp.com/signing/done",
+    )
+)
+
+print(link["url"], link["expires_at"])
+```
+
+The envelope must be in `in_progress` status and the link expires after 10
+minutes, so create it when the signer is ready (one link per signing session).
+When the session ends the iframe redirects to `return_url` with `event`
+(`signing_complete`, `voided`, `expired`, or `not_found`), `envelopeId`,
+`documentId`, and `recipientId` appended as query parameters; existing
+`return_url` query parameters are preserved.
+
+## Managing recipients
+
+Store recipients in your account and reference them by `recipient_id` when
+creating envelopes, as an alternative to passing `email` and `name` inline.
+Emails are not unique; every `create_recipient` call creates a new recipient,
+so list existing recipients first when reuse is intended.
+
+```python
+from pdfgate import (
+    CreateRecipientParams,
+    GetRecipientParams,
+    ListRecipientsParams,
+    UpdateRecipientParams,
+)
+
+recipient = client.create_recipient(
+    CreateRecipientParams(
+        email="anna@example.com",
+        name="Anna Smith",
+        metadata={"customerId": "cus_123"},
+    )
+)
+
+recipients = client.list_recipients(
+    ListRecipientsParams(email="anna@example.com")
+)["recipients"]
+
+fetched = client.get_recipient(GetRecipientParams(recipient_id=recipient["id"]))
+
+updated = client.update_recipient(
+    UpdateRecipientParams(recipient_id=recipient["id"], name="Anna Smith-Jones")
+)
+```
+
+The recipient email cannot be changed after creation. Updating a recipient does
+not affect existing envelopes; they keep the recipient name they were created
+with.
+
+```python
+envelope = client.create_envelope(
+    CreateEnvelopeParams(
+        requester_name="John Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=document_id,
+                name="Employment Agreement",
+                recipients=[
+                    EnvelopeRecipient(recipient_id=recipient["id"], role="signer")
+                ],
+            )
+        ],
+    )
+)
 ```
 
 # Development

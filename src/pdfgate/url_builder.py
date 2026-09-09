@@ -140,6 +140,46 @@ class URLBuilder:
         """
         return f"{self.domain}/envelope/{envelope_id}/send"
 
+    def embed_link_url(self, envelope_id: str) -> str:
+        """Build the URL for creating an embedded signing link.
+
+        Args:
+            envelope_id:
+                ID of the envelope.
+
+        Returns:
+            Full URL to create an embedded signing link.
+        """
+        return f"{self.domain}/envelope/{envelope_id}/embed-link"
+
+    def recipient_url(self) -> str:
+        """Build the URL for creating a stored recipient.
+
+        Returns:
+            Full URL to create a recipient.
+        """
+        return f"{self.domain}/recipient"
+
+    def get_recipient_url(self, recipient_id: str) -> str:
+        """Build the URL for fetching or updating a stored recipient.
+
+        Args:
+            recipient_id:
+                ID of the recipient.
+
+        Returns:
+            Full URL to fetch or update a recipient.
+        """
+        return f"{self.domain}/recipient/{recipient_id}"
+
+    def list_recipients_url(self) -> str:
+        """Build the URL for listing stored recipients.
+
+        Returns:
+            Full URL to list recipients.
+        """
+        return f"{self.domain}/recipients"
+
     def webhook_url(self) -> str:
         """Build the URL for creating a webhook.
 
