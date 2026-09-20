@@ -984,6 +984,82 @@ def test_create_envelope_omits_optional_fields(
     assert "role" not in recipients[0]
     assert "reminderIntervalDays" not in recipients[0]
     assert "reminderAttempts" not in recipients[0]
+    assert "signingOrder" not in recipients[0]
+
+
+def test_create_envelope_sends_signing_order_and_parses_activation(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    source_doc_id = str(uuid.uuid4())
+    activated_at = datetime.now().isoformat()
+    url = url_builder.envelope_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "created",
+                "documents": [
+                    {
+                        "sourceDocumentId": source_doc_id,
+                        "recipients": [
+                            {
+                                "email": "anna@example.com",
+                                "status": "pending",
+                                "signingOrder": 1,
+                                "activatedAt": activated_at,
+                                "fields": [],
+                            },
+                            {
+                                "email": "bob@example.com",
+                                "status": "pending",
+                                "signingOrder": 2,
+                                "fields": [],
+                            },
+                        ],
+                        "status": "pending",
+                    }
+                ],
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateEnvelopeParams(
+        requester_name="John Doe",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_doc_id,
+                name="Employment Agreement",
+                recipients=[
+                    EnvelopeRecipient(
+                        email="anna@example.com",
+                        name="Anna Smith",
+                        signing_order=1,
+                    ),
+                    EnvelopeRecipient(
+                        email="bob@example.com",
+                        name="Bob Jones",
+                        signing_order=2,
+                    ),
+                ],
+            )
+        ],
+    )
+
+    response = client.create_envelope(params)
+
+    recipients = response.get("documents", [])[0].get("recipients", [])
+    assert recipients[0].get("signing_order") == 1
+    assert recipients[0].get("activated_at") == activated_at
+    assert recipients[1].get("signing_order") == 2
+    assert "activated_at" not in recipients[1]
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    sent_recipients = request_body["documents"][0]["recipients"]
+    assert sent_recipients[0].get("signingOrder") == 1
+    assert sent_recipients[1].get("signingOrder") == 2
 
 
 @pytest.mark.asyncio
@@ -1149,6 +1225,43 @@ def test_create_webhook_sends_config_and_parses_response(
     assert request_body.get("url") == "https://example.com/hook"
     assert request_body.get("eventTypes") == ["envelope.completed"]
     assert request_body.get("description") == "my hook"
+
+
+def test_create_webhook_accepts_recipient_activated_event(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    webhook_id = str(uuid.uuid4())
+    url = url_builder.webhook_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": webhook_id,
+                "url": "https://example.com/hook",
+                "eventTypes": ["envelope.recipient.activated"],
+                "status": "active",
+                "secret": "whsec_abc",
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateWebhookParams(
+        url="https://example.com/hook",
+        event_types=[WebhookEventType.ENVELOPE_RECIPIENT_ACTIVATED],
+    )
+
+    response = client.create_webhook(params)
+
+    assert response.get("event_types") == ["envelope.recipient.activated"]
+    assert (
+        WebhookEventType(response.get("event_types", [])[0])
+        is WebhookEventType.ENVELOPE_RECIPIENT_ACTIVATED
+    )
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("eventTypes") == ["envelope.recipient.activated"]
 
 
 def test_get_webhook_returns_json(
