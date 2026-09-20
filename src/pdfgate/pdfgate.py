@@ -516,7 +516,9 @@ class PDFGate:
         """Send a signing envelope to all configured recipients.
 
         Embedded recipients receive no email; create their signing links with
-        :meth:`create_embed_link` after sending.
+        :meth:`create_embed_link` after sending. On documents with a
+        ``signing_order`` only the first recipients are emailed; later
+        recipients are activated as earlier ones sign.
 
         Args:
             params: Envelope send parameters including the envelope ID.
@@ -532,7 +534,9 @@ class PDFGate:
         """Send a signing envelope to all configured recipients.
 
         Embedded recipients receive no email; create their signing links with
-        :meth:`create_embed_link` after sending.
+        :meth:`create_embed_link` after sending. On documents with a
+        ``signing_order`` only the first recipients are emailed; later
+        recipients are activated as earlier ones sign.
 
         Args:
             params: Envelope send parameters including the envelope ID.
@@ -622,7 +626,10 @@ class PDFGate:
         with ``event`` (``signing_complete``, ``voided``, ``expired`` or
         ``not_found``), ``envelopeId``, ``documentId`` and ``recipientId``
         appended as query parameters; existing ``return_url`` query parameters
-        are preserved.
+        are preserved. On documents with a ``signing_order`` the link can only
+        be created once it is the recipient's turn (the API returns an error
+        before that); the ``envelope.recipient.activated`` webhook signals
+        that moment.
 
         Args:
             params: Embed link parameters including the envelope ID, document
@@ -647,7 +654,10 @@ class PDFGate:
         with ``event`` (``signing_complete``, ``voided``, ``expired`` or
         ``not_found``), ``envelopeId``, ``documentId`` and ``recipientId``
         appended as query parameters; existing ``return_url`` query parameters
-        are preserved.
+        are preserved. On documents with a ``signing_order`` the link can only
+        be created once it is the recipient's turn (the API returns an error
+        before that); the ``envelope.recipient.activated`` webhook signals
+        that moment.
 
         Args:
             params: Embed link parameters including the envelope ID, document

@@ -67,6 +67,7 @@ class WebhookEventType(Enum):
     ENVELOPE_VOIDED = "envelope.voided"
     ENVELOPE_DELETED = "envelope.deleted"
     ENVELOPE_RECIPIENT_SIGNED = "envelope.recipient.signed"
+    ENVELOPE_RECIPIENT_ACTIVATED = "envelope.recipient.activated"
     ENVELOPE_DOCUMENT_COMPLETED = "envelope.document.completed"
 
 
@@ -97,14 +98,20 @@ class EnvelopeFieldResponse(TypedDict, total=False):
 
 
 class EnvelopeRecipientResponse(TypedDict, total=False):
-    """A recipient within an envelope document response."""
+    """A recipient within an envelope document response.
+
+    ``activated_at`` is the time it became the recipient's turn to sign.
+    Absent until the recipient is activated.
+    """
 
     recipient_id: str
     email: str
     embedded: bool
     status: DocumentRecipientStatus
+    signing_order: int
     signed_at: str
     viewed_at: str
+    activated_at: str
     fields: list[EnvelopeFieldResponse]
     signing_link: str
     preview_link: str

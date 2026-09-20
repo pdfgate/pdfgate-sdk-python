@@ -122,9 +122,10 @@ client.delete_webhook(DeleteWebhookParams(webhook_id=webhook_id))
 ```
 
 The subscribable events are exposed via `WebhookEventType`:
-`ENVELOPE_SENT`, `ENVELOPE_COMPLETED`, `ENVELOPE_EXPIRED`, and
-`ENVELOPE_DOCUMENT_COMPLETED`. The webhook URL must be publicly accessible
-(localhost is not supported).
+`ENVELOPE_SENT`, `ENVELOPE_COMPLETED`, `ENVELOPE_EXPIRED`,
+`ENVELOPE_DOCUMENT_COMPLETED`, and `ENVELOPE_RECIPIENT_ACTIVATED` (occurs when
+it becomes a recipient's turn to sign on a document with a signing order).
+The webhook URL must be publicly accessible (localhost is not supported).
 
 # Webhook Verification
 
@@ -329,7 +330,14 @@ envelope = client.create_envelope(
                         name="Anna Smith",
                         role="signer",
                         embedded=True,
-                    )
+                        signing_order=1,
+                    ),
+                    EnvelopeRecipient(
+                        email="bob@example.com",
+                        name="Bob Jones",
+                        role="signer",
+                        signing_order=2,
+                    ),
                 ],
             )
         ],
@@ -349,6 +357,14 @@ link = client.create_embed_link(
 
 print(link["url"], link["expires_at"])
 ```
+
+`signing_order` starts from 1: recipients sign one after another in this order
+and a recipient is activated once everyone with a lower value has signed;
+provide it for every recipient of a document or for none — omitted, all
+recipients can sign immediately. On documents with a signing order the embed
+link can only be created once it is the recipient's turn (the API returns an
+error before that); the `envelope.recipient.activated` webhook signals that
+moment.
 
 The envelope must be in `in_progress` status and the link expires after 10
 minutes, so create it when the signer is ready (one link per signing session).

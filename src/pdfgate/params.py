@@ -295,6 +295,12 @@ class EnvelopeRecipient(PDFGateParams):
     Provide either ``email`` and ``name`` or the ``recipient_id`` of a stored
     recipient, never both. Recipients marked ``embedded`` sign inside your own
     application through an embed link and receive no emails from PDFGate.
+
+    ``signing_order`` is the signing order of the recipient, starting from 1.
+    Recipients sign one after another in this order and a recipient is
+    activated once everyone with a lower value has signed. Recipients with the
+    same value can sign in parallel. Provide it for every recipient of a
+    document or for none. Omitted, all recipients can sign immediately.
     """
 
     email: Optional[str] = None
@@ -304,6 +310,7 @@ class EnvelopeRecipient(PDFGateParams):
     reminder_interval_days: Optional[int] = None
     reminder_attempts: Optional[int] = None
     embedded: Optional[bool] = None
+    signing_order: Optional[int] = None
 
 
 @dataclass
