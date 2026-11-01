@@ -301,6 +301,19 @@ class EnvelopeRecipient(PDFGateParams):
     activated once everyone with a lower value has signed. Recipients with the
     same value can sign in parallel. Provide it for every recipient of a
     document or for none. Omitted, all recipients can sign immediately.
+
+    ``auto_sign`` enables automatic signing: the stored signature of the
+    referenced recipient is applied on their behalf when their turn to sign
+    comes, with no signing session or email. Requires ``recipient_id``
+    pointing to a recipient with an active stored signature and cannot be
+    combined with ``embedded``. Every required field of the recipient must
+    already have a value before the document is sent, except signature and
+    auto-filled date fields.
+
+    ``send_signed_copy`` controls whether this recipient is emailed the signed
+    document when the document completes. Defaults to ``True`` for recipients
+    who sign through the emailed signing link and ``False`` for embedded and
+    automatic signing recipients.
     """
 
     email: Optional[str] = None
@@ -311,6 +324,8 @@ class EnvelopeRecipient(PDFGateParams):
     reminder_attempts: Optional[int] = None
     embedded: Optional[bool] = None
     signing_order: Optional[int] = None
+    auto_sign: Optional[bool] = None
+    send_signed_copy: Optional[bool] = None
 
 
 @dataclass
@@ -416,6 +431,29 @@ class UpdateRecipientParams(PDFGateParams):
     recipient_id: str
     name: Optional[str] = None
     metadata: Optional[dict] = None
+
+
+@dataclass
+class DeleteRecipientParams(PDFGateParams):
+    """Parameters for deleting a stored recipient by ID."""
+
+    recipient_id: str
+
+
+@dataclass
+class RequestRecipientSignatureParams(PDFGateParams):
+    """Parameters for emailing a recipient the link to store a reusable
+    signature (automatic signing)."""
+
+    recipient_id: str
+
+
+@dataclass
+class RemoveRecipientSignatureParams(PDFGateParams):
+    """Parameters for removing a recipient's stored signature or cancelling a
+    pending enrolment (automatic signing)."""
+
+    recipient_id: str
 
 
 @dataclass

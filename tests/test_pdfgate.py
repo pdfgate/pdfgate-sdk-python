@@ -24,6 +24,7 @@ from pdfgate.params import (
     CreateWebhookParams,
     DeleteDocumentParams,
     DeleteEnvelopeParams,
+    DeleteRecipientParams,
     DeleteWebhookParams,
     EnvelopeDocument,
     EnvelopeRecipient,
@@ -37,6 +38,8 @@ from pdfgate.params import (
     GetWebhookParams,
     ListRecipientsParams,
     ManualFormField,
+    RemoveRecipientSignatureParams,
+    RequestRecipientSignatureParams,
     SendEnvelopeParams,
     UpdateRecipientParams,
     VoidEnvelopeParams,
@@ -47,7 +50,13 @@ from pdfgate.params import (
 from pdfgate.pdfgate import PDFGate
 
 from pdfgate.request_builder import PDFGateRequest
-from pdfgate.responses import DocumentFieldType, DocumentStatus, WebhookEventType
+from pdfgate.responses import (
+    DocumentFieldType,
+    DocumentStatus,
+    SignatureAdoptionMethod,
+    StoredSignatureStatus,
+    WebhookEventType,
+)
 from pdfgate.url_builder import URLBuilder
 
 
@@ -687,6 +696,207 @@ def test_update_recipient_sends_patch_without_recipient_id_in_body(
     }
 
 
+def test_delete_recipient_sends_delete_request_without_body(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    recipient_id = str(uuid.uuid4())
+    url = url_builder.get_recipient_url(recipient_id)
+    route = respx_mock.delete(url)
+    route.mock(return_value=httpx.Response(204))
+
+    client.delete_recipient(DeleteRecipientParams(recipient_id=recipient_id))
+
+    assert route.called
+    assert route.calls.last.request.method == "DELETE"
+    assert route.calls.last.request.content == b""
+
+
+def test_request_recipient_signature_posts_without_body_and_parses_pending(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    recipient_id = str(uuid.uuid4())
+    requested_at = datetime.now().isoformat()
+    url = url_builder.recipient_signature_request_url(recipient_id)
+    route = respx_mock.post(url)
+    response_json = {
+        "id": recipient_id,
+        "email": "anna@example.com",
+        "name": "Anna Smith",
+        "createdAt": datetime.now().isoformat(),
+        "signature": {
+            "status": "pending",
+            "requestedAt": requested_at,
+            "useCount": 0,
+        },
+    }
+    route.mock(return_value=httpx.Response(201, json=response_json))
+
+    response = client.request_recipient_signature(
+        RequestRecipientSignatureParams(recipient_id=recipient_id)
+    )
+
+    assert route.calls.last.request.method == "POST"
+    assert route.calls.last.request.content == b""
+    assert response.get("id") == recipient_id
+    signature = response.get("signature", {})
+    assert signature.get("status") == "pending"
+    assert StoredSignatureStatus(signature["status"]) is StoredSignatureStatus.PENDING
+    assert signature.get("requested_at") == requested_at
+    assert signature.get("use_count") == 0
+    assert "image" not in signature
+
+
+def test_get_recipient_parses_active_stored_signature(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    recipient_id = str(uuid.uuid4())
+    requested_at = datetime.now().isoformat()
+    enrolled_at = datetime.now().isoformat()
+    last_used_at = datetime.now().isoformat()
+    url = url_builder.get_recipient_url(recipient_id)
+    route = respx_mock.get(url)
+    response_json = {
+        "id": recipient_id,
+        "email": "anna@example.com",
+        "createdAt": datetime.now().isoformat(),
+        "signature": {
+            "status": "active",
+            "requestedAt": requested_at,
+            "adoptionMethod": "type_signature",
+            "enrolledAt": enrolled_at,
+            "lastUsedAt": last_used_at,
+            "useCount": 2,
+            "image": "data:image/png;base64,AAAA",
+        },
+    }
+    route.mock(return_value=httpx.Response(200, json=response_json))
+
+    response = client.get_recipient(GetRecipientParams(recipient_id=recipient_id))
+
+    signature = response.get("signature", {})
+    assert signature.get("status") == "active"
+    assert StoredSignatureStatus(signature["status"]) is StoredSignatureStatus.ACTIVE
+    assert signature.get("adoption_method") == "type_signature"
+    assert (
+        SignatureAdoptionMethod(signature["adoption_method"])
+        is SignatureAdoptionMethod.TYPE_SIGNATURE
+    )
+    assert signature.get("requested_at") == requested_at
+    assert signature.get("enrolled_at") == enrolled_at
+    assert signature.get("last_used_at") == last_used_at
+    assert signature.get("use_count") == 2
+    assert signature.get("image") == "data:image/png;base64,AAAA"
+
+
+def test_remove_recipient_signature_sends_delete_and_parses_revoked(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    recipient_id = str(uuid.uuid4())
+    revoked_at = datetime.now().isoformat()
+    url = url_builder.recipient_signature_url(recipient_id)
+    route = respx_mock.delete(url)
+    response_json = {
+        "id": recipient_id,
+        "email": "anna@example.com",
+        "createdAt": datetime.now().isoformat(),
+        "signature": {
+            "status": "revoked",
+            "revokedAt": revoked_at,
+            "useCount": 2,
+        },
+    }
+    route.mock(return_value=httpx.Response(200, json=response_json))
+
+    response = client.remove_recipient_signature(
+        RemoveRecipientSignatureParams(recipient_id=recipient_id)
+    )
+
+    assert route.calls.last.request.method == "DELETE"
+    assert route.calls.last.request.content == b""
+    assert response.get("id") == recipient_id
+    signature = response.get("signature", {})
+    assert signature.get("status") == "revoked"
+    assert StoredSignatureStatus(signature["status"]) is StoredSignatureStatus.REVOKED
+    assert signature.get("revoked_at") == revoked_at
+    assert "image" not in signature
+
+
+def test_create_envelope_sends_auto_sign_and_send_signed_copy(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    source_doc_id = str(uuid.uuid4())
+    recipient_id = str(uuid.uuid4())
+    url = url_builder.envelope_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": str(uuid.uuid4()),
+                "status": "created",
+                "documents": [
+                    {
+                        "sourceDocumentId": source_doc_id,
+                        "recipients": [
+                            {
+                                "recipientId": recipient_id,
+                                "email": "ceo@example.com",
+                                "embedded": False,
+                                "autoSign": True,
+                                "sendSignedCopy": False,
+                                "status": "pending",
+                                "fields": [],
+                            }
+                        ],
+                        "status": "pending",
+                    }
+                ],
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateEnvelopeParams(
+        requester_name="HR",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=source_doc_id,
+                name="Contract",
+                recipients=[
+                    EnvelopeRecipient(
+                        recipient_id=recipient_id,
+                        role="ceo",
+                        auto_sign=True,
+                        send_signed_copy=False,
+                    )
+                ],
+            )
+        ],
+    )
+
+    response = client.create_envelope(params)
+
+    recipient = response.get("documents", [])[0].get("recipients", [])[0]
+    assert recipient.get("auto_sign") is True
+    assert recipient.get("send_signed_copy") is False
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    sent_recipient = request_body["documents"][0]["recipients"][0]
+    assert sent_recipient.get("recipientId") == recipient_id
+    assert sent_recipient.get("autoSign") is True
+    assert sent_recipient.get("sendSignedCopy") is False
+    assert "email" not in sent_recipient
+    assert "name" not in sent_recipient
+
+
 def test_create_envelope_sends_stored_and_embedded_recipients(
     client: PDFGate,
     url_builder: URLBuilder,
@@ -985,6 +1195,8 @@ def test_create_envelope_omits_optional_fields(
     assert "reminderIntervalDays" not in recipients[0]
     assert "reminderAttempts" not in recipients[0]
     assert "signingOrder" not in recipients[0]
+    assert "autoSign" not in recipients[0]
+    assert "sendSignedCopy" not in recipients[0]
 
 
 def test_create_envelope_sends_signing_order_and_parses_activation(
@@ -1262,6 +1474,51 @@ def test_create_webhook_accepts_recipient_activated_event(
     )
     request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
     assert request_body.get("eventTypes") == ["envelope.recipient.activated"]
+
+
+def test_create_webhook_accepts_signature_events(
+    client: PDFGate,
+    url_builder: URLBuilder,
+    respx_mock: respx.MockRouter,
+) -> None:
+    webhook_id = str(uuid.uuid4())
+    url = url_builder.webhook_url()
+    route = respx_mock.post(url)
+    route.mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": webhook_id,
+                "url": "https://example.com/hook",
+                "eventTypes": [
+                    "recipient.signature.enrolled",
+                    "recipient.signature.revoked",
+                ],
+                "status": "active",
+                "secret": "whsec_abc",
+                "createdAt": datetime.now().isoformat(),
+            },
+        )
+    )
+    params = CreateWebhookParams(
+        url="https://example.com/hook",
+        event_types=[
+            WebhookEventType.RECIPIENT_SIGNATURE_ENROLLED,
+            WebhookEventType.RECIPIENT_SIGNATURE_REVOKED,
+        ],
+    )
+
+    response = client.create_webhook(params)
+
+    assert [WebhookEventType(e) for e in response.get("event_types", [])] == [
+        WebhookEventType.RECIPIENT_SIGNATURE_ENROLLED,
+        WebhookEventType.RECIPIENT_SIGNATURE_REVOKED,
+    ]
+    request_body = json.loads(route.calls.last.request.content.decode("utf-8"))
+    assert request_body.get("eventTypes") == [
+        "recipient.signature.enrolled",
+        "recipient.signature.revoked",
+    ]
 
 
 def test_get_webhook_returns_json(

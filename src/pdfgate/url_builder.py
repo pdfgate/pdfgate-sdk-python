@@ -180,6 +180,30 @@ class URLBuilder:
         """
         return f"{self.domain}/recipients"
 
+    def recipient_signature_request_url(self, recipient_id: str) -> str:
+        """Build the URL for requesting a recipient's stored signature.
+
+        Args:
+            recipient_id:
+                ID of the recipient.
+
+        Returns:
+            Full URL to email the recipient a signature enrolment link.
+        """
+        return f"{self.domain}/recipient/{recipient_id}/signature/request"
+
+    def recipient_signature_url(self, recipient_id: str) -> str:
+        """Build the URL for removing a recipient's stored signature.
+
+        Args:
+            recipient_id:
+                ID of the recipient.
+
+        Returns:
+            Full URL to remove a stored signature or cancel a pending enrolment.
+        """
+        return f"{self.domain}/recipient/{recipient_id}/signature"
+
     def webhook_url(self) -> str:
         """Build the URL for creating a webhook.
 

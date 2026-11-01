@@ -13,6 +13,7 @@ from .params import (
     CreateRecipientParams,
     CreateWebhookParams,
     DeleteDocumentParams,
+    DeleteRecipientParams,
     DeleteWebhookParams,
     ExtractPDFFormDataParams,
     FlattenPDFParams,
@@ -24,6 +25,8 @@ from .params import (
     GetWebhookParams,
     ListRecipientsParams,
     ProtectPDFParams,
+    RemoveRecipientSignatureParams,
+    RequestRecipientSignatureParams,
     SendEnvelopeParams,
     UpdateRecipientParams,
     VoidEnvelopeParams,
@@ -797,6 +800,126 @@ class PDFGate:
             The updated recipient.
         """
         request = self.request_builder.build_update_recipient(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    def delete_recipient(self, params: DeleteRecipientParams) -> None:
+        """Delete a stored recipient.
+
+        The record is kept with its personal data removed, so later reads
+        return a 404 error and a new envelope to the same address creates a
+        fresh recipient. Envelopes already sent are not affected. A recipient
+        with an active stored signature or a pending enrolment cannot be
+        deleted: call :meth:`remove_recipient_signature` first.
+
+        Args:
+            params: Recipient delete parameters including the recipient ID.
+        """
+        request = self.request_builder.build_delete_recipient(params)
+        self.sync_client.try_make_request(request=request)
+
+    async def delete_recipient_async(self, params: DeleteRecipientParams) -> None:
+        """Delete a stored recipient.
+
+        The record is kept with its personal data removed, so later reads
+        return a 404 error and a new envelope to the same address creates a
+        fresh recipient. Envelopes already sent are not affected. A recipient
+        with an active stored signature or a pending enrolment cannot be
+        deleted: call :meth:`remove_recipient_signature` first.
+
+        Args:
+            params: Recipient delete parameters including the recipient ID.
+        """
+        request = self.request_builder.build_delete_recipient(params)
+        await self.async_client.try_make_request_async(request=request)
+
+    def request_recipient_signature(
+        self, params: RequestRecipientSignatureParams
+    ) -> PDFGateRecipient:
+        """Automatic signing: email the recipient a link to store a reusable
+        signature.
+
+        The recipient verifies their email with a one-time code, accepts the
+        authorization text and types, draws or uploads their signature. The
+        link is valid for 7 days; calling this again replaces a pending
+        request. Once the enrolment is complete the
+        ``recipient.signature.enrolled`` webhook fires and envelopes can set
+        ``auto_sign`` on this recipient. Rejected when the recipient has no
+        email or already has an active stored signature.
+
+        Args:
+            params: Signature request parameters including the recipient ID.
+
+        Returns:
+            The recipient with ``signature.status`` set to ``pending``.
+        """
+        request = self.request_builder.build_request_recipient_signature(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    async def request_recipient_signature_async(
+        self, params: RequestRecipientSignatureParams
+    ) -> PDFGateRecipient:
+        """Automatic signing: email the recipient a link to store a reusable
+        signature.
+
+        The recipient verifies their email with a one-time code, accepts the
+        authorization text and types, draws or uploads their signature. The
+        link is valid for 7 days; calling this again replaces a pending
+        request. Once the enrolment is complete the
+        ``recipient.signature.enrolled`` webhook fires and envelopes can set
+        ``auto_sign`` on this recipient. Rejected when the recipient has no
+        email or already has an active stored signature.
+
+        Args:
+            params: Signature request parameters including the recipient ID.
+
+        Returns:
+            The recipient with ``signature.status`` set to ``pending``.
+        """
+        request = self.request_builder.build_request_recipient_signature(params)
+        response = await self.async_client.try_make_request_async(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    def remove_recipient_signature(
+        self, params: RemoveRecipientSignatureParams
+    ) -> PDFGateRecipient:
+        """Automatic signing: remove the stored signature of a recipient, or
+        cancel a pending enrolment.
+
+        Envelopes already waiting on an automatic signature fall back to a
+        signing link emailed to the recipient. Removing an active signature
+        fires the ``recipient.signature.revoked`` webhook. Idempotent: a
+        recipient without a stored signature is returned unchanged.
+
+        Args:
+            params: Signature removal parameters including the recipient ID.
+
+        Returns:
+            The recipient.
+        """
+        request = self.request_builder.build_remove_recipient_signature(params)
+        response = self.sync_client.try_make_request(request=request)
+        return ResponseBuilder.build_recipient_response(response)
+
+    async def remove_recipient_signature_async(
+        self, params: RemoveRecipientSignatureParams
+    ) -> PDFGateRecipient:
+        """Automatic signing: remove the stored signature of a recipient, or
+        cancel a pending enrolment.
+
+        Envelopes already waiting on an automatic signature fall back to a
+        signing link emailed to the recipient. Removing an active signature
+        fires the ``recipient.signature.revoked`` webhook. Idempotent: a
+        recipient without a stored signature is returned unchanged.
+
+        Args:
+            params: Signature removal parameters including the recipient ID.
+
+        Returns:
+            The recipient.
+        """
+        request = self.request_builder.build_remove_recipient_signature(params)
         response = await self.async_client.try_make_request_async(request=request)
         return ResponseBuilder.build_recipient_response(response)
 
