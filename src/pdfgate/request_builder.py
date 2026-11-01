@@ -16,6 +16,7 @@ from pdfgate.params import (
     CreateRecipientParams,
     CreateWebhookParams,
     DeleteDocumentParams,
+    DeleteRecipientParams,
     DeleteWebhookParams,
     ExtractPDFFormDataParams,
     FileParam,
@@ -28,6 +29,8 @@ from pdfgate.params import (
     ListRecipientsParams,
     PDFGateParams,
     ProtectPDFParams,
+    RemoveRecipientSignatureParams,
+    RequestRecipientSignatureParams,
     SendEnvelopeParams,
     UpdateRecipientParams,
     VoidEnvelopeParams,
@@ -98,6 +101,10 @@ class RequestBuilder:
     def _json_post_request(self, url: str, json: dict[str, Any]) -> httpx.Request:
         """Create a JSON POST request with standard headers."""
         return httpx.Request("POST", url=url, headers=self.get_headers(), json=json)
+
+    def _post_request(self, url: str) -> httpx.Request:
+        """Create a POST request without a body with standard headers."""
+        return httpx.Request("POST", url=url, headers=self.get_headers())
 
     def _multipart_post_request(
         self, url: str, data: dict[str, Any] = {}, files: dict[str, Any] = {}
@@ -331,6 +338,28 @@ class RequestBuilder:
         body = pdfgate_params_to_params_dict(params)
         body.pop("recipientId", None)
         request = self._json_patch_request(url=url, json=body)
+        return PDFGateRequest(request=request)
+
+    def build_delete_recipient(self, params: DeleteRecipientParams) -> PDFGateRequest:
+        """Build a request to delete a stored recipient by ID."""
+        url = self.url_builder.get_recipient_url(params.recipient_id)
+        request = self._delete_request(url)
+        return PDFGateRequest(request=request)
+
+    def build_request_recipient_signature(
+        self, params: RequestRecipientSignatureParams
+    ) -> PDFGateRequest:
+        """Build a request to email a recipient a signature enrolment link."""
+        url = self.url_builder.recipient_signature_request_url(params.recipient_id)
+        request = self._post_request(url)
+        return PDFGateRequest(request=request)
+
+    def build_remove_recipient_signature(
+        self, params: RemoveRecipientSignatureParams
+    ) -> PDFGateRequest:
+        """Build a request to remove a recipient's stored signature."""
+        url = self.url_builder.recipient_signature_url(params.recipient_id)
+        request = self._delete_request(url)
         return PDFGateRequest(request=request)
 
     def build_create_webhook(self, params: CreateWebhookParams) -> PDFGateRequest:

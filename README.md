@@ -79,9 +79,10 @@ Envelope methods (`create_envelope`, `get_envelope`, `send_envelope`,
 `create_embed_link` returns an `EmbedLinkResponse` with the signing `url` and
 its `expires_at`.
 
-Recipient methods (`create_recipient`, `get_recipient`, `update_recipient`)
-return a `PDFGateRecipient`; `list_recipients` returns a
-`RecipientListResponse` with a `recipients` list.
+Recipient methods (`create_recipient`, `get_recipient`, `update_recipient`,
+`request_recipient_signature`, `remove_recipient_signature`) return a
+`PDFGateRecipient`; `list_recipients` returns a `RecipientListResponse` with a
+`recipients` list; `delete_recipient` returns `None`.
 
 Webhook management methods (`create_webhook`, `get_webhook`) return a
 `WebhookResponse`; `delete_webhook` returns `None`.
@@ -123,8 +124,11 @@ client.delete_webhook(DeleteWebhookParams(webhook_id=webhook_id))
 
 The subscribable events are exposed via `WebhookEventType`:
 `ENVELOPE_SENT`, `ENVELOPE_COMPLETED`, `ENVELOPE_EXPIRED`,
-`ENVELOPE_DOCUMENT_COMPLETED`, and `ENVELOPE_RECIPIENT_ACTIVATED` (occurs when
-it becomes a recipient's turn to sign on a document with a signing order).
+`ENVELOPE_DOCUMENT_COMPLETED`, `ENVELOPE_RECIPIENT_ACTIVATED` (occurs when
+it becomes a recipient's turn to sign on a document with a signing order),
+`RECIPIENT_SIGNATURE_ENROLLED` (a recipient completed the enrolment of a
+stored signature) and `RECIPIENT_SIGNATURE_REVOKED` (an active stored
+signature was removed from a recipient).
 The webhook URL must be publicly accessible (localhost is not supported).
 
 # Webhook Verification
@@ -366,6 +370,17 @@ link can only be created once it is the recipient's turn (the API returns an
 error before that); the `envelope.recipient.activated` webhook signals that
 moment.
 
+`auto_sign` applies the stored signature of the referenced recipient on their
+behalf when their turn to sign comes, with no signing session or email. It
+requires `recipient_id` pointing to a recipient with an active stored
+signature (see [Automatic signing](#automatic-signing)) and cannot be combined
+with `embedded`. Every required field of the recipient must already have a
+value before the document is sent, except signature and auto-filled date
+fields. `send_signed_copy` controls whether the recipient is emailed the
+signed document when the document completes; it defaults to `True` for
+recipients who sign through the emailed signing link and `False` for embedded
+and automatic signing recipients.
+
 The envelope must be in `in_progress` status and the link expires after 10
 minutes, so create it when the signer is ready (one link per signing session).
 When the session ends the iframe redirects to `return_url` with `event`
@@ -412,6 +427,16 @@ not affect existing envelopes; they keep the recipient name they were created
 with.
 
 ```python
+from pdfgate import DeleteRecipientParams
+
+client.delete_recipient(DeleteRecipientParams(recipient_id=recipient["id"]))
+```
+
+Deleting a recipient removes its personal data from the directory; envelopes
+already sent are not affected. A recipient with an active stored signature or
+a pending enrolment cannot be deleted until the signature is removed.
+
+```python
 envelope = client.create_envelope(
     CreateEnvelopeParams(
         requester_name="John Doe",
@@ -427,6 +452,78 @@ envelope = client.create_envelope(
     )
 )
 ```
+
+## Automatic signing
+
+A recipient can store a reusable signature once, and later envelopes apply it
+on their behalf with no signing session. Request the enrolment, and PDFGate
+emails the recipient a link where they verify their email with a one-time
+code, accept the authorization text and type, draw or upload their signature.
+The link is valid for 7 days.
+
+```python
+from pdfgate import (
+    CreateEnvelopeParams,
+    EnvelopeDocument,
+    EnvelopeRecipient,
+    GetRecipientParams,
+    RemoveRecipientSignatureParams,
+    RequestRecipientSignatureParams,
+)
+
+pending = client.request_recipient_signature(
+    RequestRecipientSignatureParams(recipient_id=recipient["id"])
+)
+print(pending["signature"]["status"])  # "pending"
+
+# Once the recipient completes the enrolment (webhook event
+# `recipient.signature.enrolled`), the signature is active.
+enrolled = client.get_recipient(GetRecipientParams(recipient_id=recipient["id"]))
+print(enrolled["signature"]["status"], enrolled["signature"]["image"])
+# "active", PNG data URL
+
+# Sign automatically: the recipient is signed at send, or when their turn
+# in the signing order comes. No signing email is sent.
+envelope = client.create_envelope(
+    CreateEnvelopeParams(
+        requester_name="HR",
+        documents=[
+            EnvelopeDocument(
+                source_document_id=document_id,
+                name="Employment Agreement",
+                recipients=[
+                    EnvelopeRecipient(
+                        email="anna@example.com",
+                        name="Anna Smith",
+                        role="employee",
+                        signing_order=1,
+                    ),
+                    EnvelopeRecipient(
+                        recipient_id=recipient["id"],
+                        role="ceo",
+                        signing_order=2,
+                        auto_sign=True,
+                    ),
+                ],
+            )
+        ],
+    )
+)
+
+# Remove the stored signature or cancel a pending enrolment.
+client.remove_recipient_signature(
+    RemoveRecipientSignatureParams(recipient_id=recipient["id"])
+)
+```
+
+The `signature` object on a recipient carries `status` (`pending`, `active` or
+`revoked`, exposed via `StoredSignatureStatus`), `requested_at`,
+`adoption_method` (`SignatureAdoptionMethod`), `enrolled_at`, `revoked_at`,
+`last_used_at` and `use_count`. The `image` is returned by `get_recipient`
+only while the signature is active. Removing an active signature fires the
+`recipient.signature.revoked` webhook event, and envelopes already waiting on
+it fall back to a signing link emailed to the recipient. The audit log records
+every automatic signature with the enrolment details.
 
 # Development
 
